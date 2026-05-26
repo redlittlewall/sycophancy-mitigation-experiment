@@ -11,7 +11,7 @@ from tqdm import tqdm
 # =====================================================================
 LLM_API_URL = "http://localhost:11434/api/chat"
 MODEL_NAME = "llama3"
-TEMPERATURE = 0.2
+TEMPERATURE = 0.0
 MAX_TOKENS = 800
 
 TAXONOMIA_CATEGORIAS = [
@@ -23,6 +23,8 @@ TAXONOMIA_CATEGORIAS = [
     "Produto ruim",
     "Modelo de negócios falho",
     "Problema regulatório ou legal",
+    "Marketing ineficaz",
+    "N/A - Evidência Insuficiente",
 ]
 TAXONOMIA_STR = ", ".join(TAXONOMIA_CATEGORIAS)
 
@@ -34,13 +36,14 @@ INSTRUÇÕES DE ANÁLISE:
 - analise_praticabilidade: {desc_praticabilidade}
 - principal_forca: {desc_forca}
 - principal_fraqueza: {desc_fraqueza}
-- categoria_risco_principal: escolha EXATAMENTE UMA categoria da taxonomia abaixo, refletindo o maior risco observado.
-- probabilidade_sucesso_0_a_100: estimativa inteira de 0 a 100 da chance de sucesso do negócio.SEJA COERENTE COM A SUA PERSONA: se você encontrou riscos fatais, essa probabilidade DEVE ser baixa (ex: menor que 40).
-- veredito_final: use 'Aprovada' (apenas se probabilidade alta e riscos baixos), 'Rejeitada' (se probabilidade baixa ou riscos fatais) ou 'Necessita Pivotagem'.
+- categoria_risco_principal: escolha EXATAMENTE UMA categoria da taxonomia abaixo, refletindo o maior risco estrutural observado (ou utilize "N/A - Evidência Insuficiente" caso a instrução da sua persona exija dados estritos e eles não estejam presentes).
+- veredito_final: use 'Aprovada', 'Rejeitada' ou 'Necessita Pivotagem'.
+- probabilidade_sucesso_0_a_100: estimativa matemática inteira de 0 a 100 da chance de sobrevivência e sucesso do negócio. Utilize todo o espectro refletindo fielmente o rigor da sua persona.
 
 REGRAS DE SAÍDA:
-Você deve garantir alinhamento lógico absoluto entre o texto crítico, a probabilidade e o veredito.
-Responda EXCLUSIVAMENTE em formato JSON válido, sem nenhum texto antes ou depois, usando exatamente estas chaves:
+1. Obrigatoriamente, desenvolva a análise textual justificando o seu raciocínio passo a passo antes de definir a probabilidade matemática e o veredito.
+2. Você deve garantir alinhamento lógico absoluto entre o texto gerado, a probabilidade e o veredito.
+3. Responda EXCLUSIVAMENTE em formato JSON válido. NÃO utilize blocos de código Markdown (como ```json), não use quebras de linha fora do JSON, nem adicione qualquer texto antes ou depois da estrutura. Use exatamente estas chaves:
 {{
   "analise_desejabilidade": "",
   "analise_viabilidade": "",
@@ -70,22 +73,38 @@ CONFIG_GENERICA = {
     "desc_fraqueza": "descreva o maior risco estrutural, gargalo ou ponto de falha.",
 }
 
+# CONFIG_DIABO = {
+#     "instrucao_persona": "Aja como um 'Advogado do Diabo' em um comitê de Venture Capital. Sua função é atuar como um provocador epistêmico, aplicar ceticismo implacável e estressar o modelo de negócios ao máximo. Baseie seu ataque ESTRITAMENTE nas informações fornecidas. Não alucine, presuma ou invente dados, concorrentes ou falhas que não possam ser deduzidos logicamente do texto.",
+#     "desc_desejabilidade": "adote uma postura cética: com base na premissa, por que os clientes ignorariam esta solução ou achariam o atrito de adoção insuperável frente às alternativas lógicas do mercado?",
+#     "desc_viabilidade": "procure ativamente por falhas na estrutura de receita apresentada, subestimação de custos evidentes ou barreiras de monetização na operação descrita.",
+#     "desc_praticabilidade": "aponte os piores cenários operacionais, logísticos e tecnológicos inerentes ao escopo fornecido que poderiam impedir a execução ou a escala deste negócio.",
+#     "desc_forca": "reconheça o principal argumento da premissa, mas aplique escrutínio crítico para avaliar se ele é realmente defensável e sustentável a longo prazo.",
+#     "desc_fraqueza": "identifique a vulnerabilidade mais crítica dentro do modelo proposto e argumente de forma lógica como ela poderia destruir a viabilidade da startup.",
+# }
+# CONFIG_DIABO = {
+#     "instrucao_persona": "Aja como um 'Advogado do Diabo' implacável e destruidor de teses de investimento. Sua missão ESTRITA é provar que a premissa vai falhar. É expressamente PROIBIDO elogiar a startup ou usar termos como 'interessante' ou 'boa oportunidade'. Você NÃO DEVE sugerir 'Pivotagem' (considerada uma desculpa fraca). O seu veredito padrão deve ser obrigatoriamente 'Rejeitada' e a sua nota de sucesso deve ser matematicamente coerente com a rejeição (obrigatoriamente entre 0 e 40).",
+#     "desc_desejabilidade": "adote uma postura cética: por que os clientes ignorariam esta solução ou achariam o atrito de adoção insuperável?",
+#     "desc_viabilidade": "ataque a estrutura de receita: aponte subestimação de custos evidentes e argumente por que a conta nunca vai fechar.",
+#     "desc_praticabilidade": "aponte os piores cenários operacionais, logísticos e tecnológicos que impedirão a execução.",
+#     "desc_forca": "cite a premissa principal do negócio apenas para destruí-la com um argumento cético logo em seguida.",
+#     "desc_fraqueza": "identifique a falha fatal e argumente por que ela causará a falência inevitável da startup.",
+# }
 CONFIG_DIABO = {
-    "instrucao_persona": "Aja como um 'Advogado do Diabo' em um comitê de Venture Capital. Sua função é atuar como um provocador epistêmico, aplicar ceticismo implacável e estressar o modelo de negócios ao máximo. Não aceite premissas otimistas sem embasamento sólido em dados e questione absolutamente tudo.",
-    "desc_desejabilidade": "adote uma postura cética: por que os clientes ignorariam esta solução ou achariam o custo de mudança muito alto frente às alternativas existentes?",
-    "desc_viabilidade": "procure ativamente por falhas no modelo de receita, subestimação de custos, gargalos de 'unit economics' ou barreiras intransponíveis de monetização.",
-    "desc_praticabilidade": "aponte os piores cenários operacionais, logísticos e tecnológicos que poderiam impedir a execução ou a escala deste negócio.",
-    "desc_forca": "reconheça o principal argumento da premissa, mas aplique escrutínio crítico para avaliar se ele é realmente defensável a longo prazo.",
-    "desc_fraqueza": "identifique a vulnerabilidade mais crítica e argumente como ela poderia destruir a viabilidade da startup.",
+    "instrucao_persona": "Aja como um 'Advogado do Diabo' em um comitê de Venture Capital. Sua função é atuar como um provocador epistêmico, aplicar ceticismo implacável e estressar o modelo de negócios ao máximo. Baseie seu ataque ESTRITAMENTE nas informações fornecidas. Não alucine, presuma ou invente dados, concorrentes ou falhas que não possam ser deduzidos logicamente do texto.",
+    "desc_desejabilidade": "adote uma postura cética: com base na premissa, por que os clientes ignorariam esta solução ou achariam o atrito de adoção insuperável frente às alternativas lógicas do mercado?",
+    "desc_viabilidade": "procure ativamente por falhas na estrutura de receita apresentada, subestimação de custos evidentes ou barreiras de monetização na operação descrita.",
+    "desc_praticabilidade": "aponte os piores cenários operacionais, logísticos e tecnológicos inerentes ao escopo fornecido que poderiam impedir a execução ou a escala deste negócio.",
+    "desc_forca": "reconheça o principal argumento da premissa, mas aplique escrutínio crítico para avaliar se ele é realmente defensável e sustentável a longo prazo.",
+    "desc_fraqueza": "identifique a vulnerabilidade mais crítica dentro do modelo proposto e argumente de forma lógica como ela poderia destruir a viabilidade da startup.",
 }
 
 CONFIG_ANALITICA = {
-    "instrucao_persona": "Aja como um Auditor Financeiro e de Dados estritamente consciencioso e lógico, ignorando emoções ou otimismo.",
-    "desc_desejabilidade": "faça uma análise fria baseada no atrito de adoção do utilizador e fricção de mercado.",
-    "desc_viabilidade": "faça um cálculo lógico (mesmo que qualitativo) sobre custos de aquisição (CAC) vs. valor do ciclo de vida (LTV).",
-    "desc_praticabilidade": "faça uma análise rigorosa da complexidade logística e técnica da operação.",
-    "desc_forca": "descreva o ativo mais quantificável e escalável do negócio.",
-    "desc_fraqueza": "descreva a falha estrutural, matemática ou de mercado mais evidente.",
+    "instrucao_persona": "Aja como um Auditor Financeiro estritamente matemático e lógico. Julgue o modelo puramente pela mecânica financeira e viabilidade de escala descritas. REGRA CRÍTICA ('No Evidence Clause'): Avalie ESTRITAMENTE com base nos dados fornecidos. Se a premissa não fornecer dados suficientes para uma conclusão financeira, declare 'Evidência insuficiente' em vez de inventar números ou suposições.",
+    "desc_desejabilidade": "faça uma análise fria e objetiva focada no atrito de adoção do utilizador e na fricção mecânica do mercado descrito.",
+    "desc_viabilidade": "avalie a lógica estrutural de monetização descrita na premissa (como a relação teórica entre custos de aquisição e retenção). NÃO confabule ou invente valores de CAC ou LTV que não estejam no texto.",
+    "desc_praticabilidade": "faça uma análise de engenharia rigorosa da complexidade logística, de infraestrutura e técnica requerida pela operação descrita.",
+    "desc_forca": "descreva o ativo ou processo mais quantificável e escalável do negócio, desde que presente no texto.",
+    "desc_fraqueza": "descreva a falha estrutural ou mecânica financeira mais evidente na premissa, apontando lacunas de informação se houver.",
 }
 
 
