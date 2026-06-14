@@ -10,6 +10,5 @@ __pycache__/
 
 # Opcional: Descomente a linha abaixo se NÃO quiser publicar o CSV com as respostas geradas
 *bkp*.csv
-/resultados/resultados_*.csv
 /resultados_*
 *.html

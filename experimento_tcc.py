@@ -11,7 +11,7 @@ from tqdm import tqdm
 # =====================================================================
 LLM_API_URL = "http://localhost:11434/api/chat"
 MODEL_NAME = "llama3"
-TEMPERATURE = 0.0
+TEMPERATURE = 0.2
 MAX_TOKENS = 800
 
 TAXONOMIA_CATEGORIAS = [
@@ -31,25 +31,27 @@ TAXONOMIA_STR = ", ".join(TAXONOMIA_CATEGORIAS)
 SYSTEM_TEMPLATE = """{instrucao_persona}
 
 INSTRUÇÕES DE ANÁLISE:
-- analise_desejabilidade: {desc_desejabilidade}
-- analise_viabilidade: {desc_viabilidade}
-- analise_praticabilidade: {desc_praticabilidade}
-- principal_forca: {desc_forca}
-- principal_fraqueza: {desc_fraqueza}
+- ATENÇÃO AO TIMING: Utilize o 'Ano da Análise' para balizar a sua avaliação. Considere a maturidade tecnológica, o comportamento do consumidor e o nível de saturação da concorrência daquela época exata.
+- analise_problema_mercado: {desc_problema_mercado}
+- analise_solucao_proposta: {desc_solucao_proposta}
+- analise_receitas_custos: {desc_receitas_custos}
+- vantagem_injusta: {desc_vantagem_injusta}
+- risco_critico: {desc_risco_critico}
+- analise_equipe: "avalie criticamente se o nível de experiência e o histórico dos fundadores são adequados para o desafio técnico e competitivo descrito."
 - categoria_risco_principal: escolha EXATAMENTE UMA categoria da taxonomia abaixo, refletindo o maior risco estrutural observado (ou utilize "N/A - Evidência Insuficiente" caso a instrução da sua persona exija dados estritos e eles não estejam presentes).
+- probabilidade_sucesso_0_a_100: estimativa matemática (0 a 100). REGRA: Deve refletir matematicamente o seu veredito (ex: notas baixas para rejeições, notas médias para pivotagem, notas altas para aprovação).
 - veredito_final: use 'Aprovada', 'Rejeitada' ou 'Necessita Pivotagem'.
-- probabilidade_sucesso_0_a_100: estimativa matemática inteira de 0 a 100 da chance de sobrevivência e sucesso do negócio. Utilize todo o espectro refletindo fielmente o rigor da sua persona.
 
 REGRAS DE SAÍDA:
-1. Obrigatoriamente, desenvolva a análise textual justificando o seu raciocínio passo a passo antes de definir a probabilidade matemática e o veredito.
-2. Você deve garantir alinhamento lógico absoluto entre o texto gerado, a probabilidade e o veredito.
-3. Responda EXCLUSIVAMENTE em formato JSON válido. NÃO utilize blocos de código Markdown (como ```json), não use quebras de linha fora do JSON, nem adicione qualquer texto antes ou depois da estrutura. Use exatamente estas chaves:
+1. Desenvolva o raciocínio justificando a sua decisão antes de dar a probabilidade e o veredito.
+2. Responda EXCLUSIVAMENTE em formato JSON válido, usando exatamente estas chaves:
 {{
-  "analise_desejabilidade": "",
-  "analise_viabilidade": "",
-  "analise_praticabilidade": "",
-  "principal_forca": "",
-  "principal_fraqueza": "",
+  "analise_problema_mercado": "",
+  "analise_solucao_proposta": "",
+  "analise_receitas_custos": "",
+  "vantagem_injusta": "",
+  "risco_critico": "",
+  "analise_equipe": "",
   "categoria_risco_principal": "",
   "probabilidade_sucesso_0_a_100": 0,
   "veredito_final": ""
@@ -60,51 +62,47 @@ CLASSIFICAÇÃO PERMITIDA PARA categoria_risco_principal:
 
 USER_TEMPLATE = """DADOS DA STARTUP:
 Setor: {setor}
-Modelo de Negócios (Premissa): {modelo_negocios}"""
+Ano da Análise: {ano_analise}
+Proposta: {nome_anonimizado}
+Modelo de Negócios (Premissa): {modelo_negocios}
+Estrutura da Equipe e Cenário de Mercado: {contexto_mercado}"""
 
 
 # 2. CONFIGURAÇÕES DAS PERSONAS (Ajustadas para a nova estrutura)
-CONFIG_GENERICA = {
-    "instrucao_persona": "Você é um consultor sênior de negócios digitais. Avalie o modelo de negócios da startup abaixo utilizando estritamente a ótica do 'Lean Canvas' e os pilares do 'Design Thinking'.",
-    "desc_desejabilidade": "avalie se a dor do mercado é real, relevante e suficiente para sustentar demanda.",
-    "desc_viabilidade": "avalie se o modelo econômico faz sentido, considerando receita, custos, margem e concorrência.",
-    "desc_praticabilidade": "avalie se a solução é tecnicamente e operacionalmente executável no nível descrito.",
-    "desc_forca": "descreva o principal diferencial, ativo ou vantagem competitiva do negócio.",
-    "desc_fraqueza": "descreva o maior risco estrutural, gargalo ou ponto de falha.",
+CONFIG_CONTROLE = {
+    "instrucao_persona": "Avalie o modelo de negócios da startup abaixo utilizando estritamente a ótica do 'Lean Canvas'. Baseie-se apenas no texto fornecido.",
+    "desc_problema_mercado": "avalie a relevância do problema descrito e se o segmento de clientes possui demanda clara.",
+    "desc_solucao_proposta": "avalie a adequação da solução e a clareza da proposta de valor única.",
+    "desc_receitas_custos": "avalie a estrutura de custos e os fluxos de receita descritos.",
+    "desc_vantagem_injusta": "identifique a vantagem competitiva ou ativo principal.",
+    "desc_risco_critico": "identifique o maior risco estrutural ou ponto de falha do negócio.",
 }
 
-# CONFIG_DIABO = {
-#     "instrucao_persona": "Aja como um 'Advogado do Diabo' em um comitê de Venture Capital. Sua função é atuar como um provocador epistêmico, aplicar ceticismo implacável e estressar o modelo de negócios ao máximo. Baseie seu ataque ESTRITAMENTE nas informações fornecidas. Não alucine, presuma ou invente dados, concorrentes ou falhas que não possam ser deduzidos logicamente do texto.",
-#     "desc_desejabilidade": "adote uma postura cética: com base na premissa, por que os clientes ignorariam esta solução ou achariam o atrito de adoção insuperável frente às alternativas lógicas do mercado?",
-#     "desc_viabilidade": "procure ativamente por falhas na estrutura de receita apresentada, subestimação de custos evidentes ou barreiras de monetização na operação descrita.",
-#     "desc_praticabilidade": "aponte os piores cenários operacionais, logísticos e tecnológicos inerentes ao escopo fornecido que poderiam impedir a execução ou a escala deste negócio.",
-#     "desc_forca": "reconheça o principal argumento da premissa, mas aplique escrutínio crítico para avaliar se ele é realmente defensável e sustentável a longo prazo.",
-#     "desc_fraqueza": "identifique a vulnerabilidade mais crítica dentro do modelo proposto e argumente de forma lógica como ela poderia destruir a viabilidade da startup.",
-# }
-# CONFIG_DIABO = {
-#     "instrucao_persona": "Aja como um 'Advogado do Diabo' implacável e destruidor de teses de investimento. Sua missão ESTRITA é provar que a premissa vai falhar. É expressamente PROIBIDO elogiar a startup ou usar termos como 'interessante' ou 'boa oportunidade'. Você NÃO DEVE sugerir 'Pivotagem' (considerada uma desculpa fraca). O seu veredito padrão deve ser obrigatoriamente 'Rejeitada' e a sua nota de sucesso deve ser matematicamente coerente com a rejeição (obrigatoriamente entre 0 e 40).",
-#     "desc_desejabilidade": "adote uma postura cética: por que os clientes ignorariam esta solução ou achariam o atrito de adoção insuperável?",
-#     "desc_viabilidade": "ataque a estrutura de receita: aponte subestimação de custos evidentes e argumente por que a conta nunca vai fechar.",
-#     "desc_praticabilidade": "aponte os piores cenários operacionais, logísticos e tecnológicos que impedirão a execução.",
-#     "desc_forca": "cite a premissa principal do negócio apenas para destruí-la com um argumento cético logo em seguida.",
-#     "desc_fraqueza": "identifique a falha fatal e argumente por que ela causará a falência inevitável da startup.",
-# }
+CONFIG_GENERICA = {
+    "instrucao_persona": "Você é um consultor sênior de negócios digitais. Avalie o modelo de negócios da startup abaixo utilizando estritamente a ótica do 'Lean Canvas'.",
+    "desc_problema_mercado": "avalie se o problema do mercado é real, relevante e se o segmento de clientes está bem definido para sustentar demanda.",
+    "desc_solucao_proposta": "avalie se a solução e a proposta de valor única resolvem o problema do cliente de forma eficaz e executável.",
+    "desc_receitas_custos": "avalie se o modelo econômico faz sentido, ponderando os fluxos de receita esperados contra a estrutura de custos e a concorrência.",
+    "desc_vantagem_injusta": "descreva a 'vantagem injusta' (unfair advantage), o principal diferencial ou ativo competitivo do negócio.",
+    "desc_risco_critico": "descreva o maior risco estrutural ou gargalo que pode invalidar as hipóteses deste modelo.",
+}
+
 CONFIG_DIABO = {
-    "instrucao_persona": "Aja como um 'Advogado do Diabo' em um comitê de Venture Capital. Sua função é atuar como um provocador epistêmico, aplicar ceticismo implacável e estressar o modelo de negócios ao máximo. Baseie seu ataque ESTRITAMENTE nas informações fornecidas. Não alucine, presuma ou invente dados, concorrentes ou falhas que não possam ser deduzidos logicamente do texto.",
-    "desc_desejabilidade": "adote uma postura cética: com base na premissa, por que os clientes ignorariam esta solução ou achariam o atrito de adoção insuperável frente às alternativas lógicas do mercado?",
-    "desc_viabilidade": "procure ativamente por falhas na estrutura de receita apresentada, subestimação de custos evidentes ou barreiras de monetização na operação descrita.",
-    "desc_praticabilidade": "aponte os piores cenários operacionais, logísticos e tecnológicos inerentes ao escopo fornecido que poderiam impedir a execução ou a escala deste negócio.",
-    "desc_forca": "reconheça o principal argumento da premissa, mas aplique escrutínio crítico para avaliar se ele é realmente defensável e sustentável a longo prazo.",
-    "desc_fraqueza": "identifique a vulnerabilidade mais crítica dentro do modelo proposto e argumente de forma lógica como ela poderia destruir a viabilidade da startup.",
+    "instrucao_persona": "Aja como um 'Advogado do Diabo' em um comitê de Venture Capital. Sua função é atuar como um provocador epistêmico, aplicar ceticismo implacável e estressar as hipóteses do 'Lean Canvas' ao máximo. Baseie seu ataque ESTRITAMENTE nas informações fornecidas. Não alucine, presuma ou invente dados, concorrentes ou falhas que não possam ser deduzidos logicamente do texto.",
+    "desc_problema_mercado": "adote uma postura cética: com base na premissa, argumente por que o problema não é grave o suficiente para os clientes pagarem por uma solução ou por que o mercado ignoraria isso.",
+    "desc_solucao_proposta": "aponte por que a solução proposta é falha, insuficiente ou apresenta um atrito de adoção insuperável frente às alternativas lógicas do mercado.",
+    "desc_receitas_custos": "procure ativamente por falhas no fluxo de receitas apresentado, subestimação de custos evidentes ou barreiras de monetização na operação descrita.",
+    "desc_vantagem_injusta": "reconheça a suposta vantagem competitiva, mas aplique escrutínio crítico para provar por que ela não é defensável e será facilmente superada a longo prazo.",
+    "desc_risco_critico": "identifique a vulnerabilidade mais letal dentro das premissas do modelo e argumente de forma lógica como ela destruirá a viabilidade da startup.",
 }
 
 CONFIG_ANALITICA = {
-    "instrucao_persona": "Aja como um Auditor Financeiro estritamente matemático e lógico. Julgue o modelo puramente pela mecânica financeira e viabilidade de escala descritas. REGRA CRÍTICA ('No Evidence Clause'): Avalie ESTRITAMENTE com base nos dados fornecidos. Se a premissa não fornecer dados suficientes para uma conclusão financeira, declare 'Evidência insuficiente' em vez de inventar números ou suposições.",
-    "desc_desejabilidade": "faça uma análise fria e objetiva focada no atrito de adoção do utilizador e na fricção mecânica do mercado descrito.",
-    "desc_viabilidade": "avalie a lógica estrutural de monetização descrita na premissa (como a relação teórica entre custos de aquisição e retenção). NÃO confabule ou invente valores de CAC ou LTV que não estejam no texto.",
-    "desc_praticabilidade": "faça uma análise de engenharia rigorosa da complexidade logística, de infraestrutura e técnica requerida pela operação descrita.",
-    "desc_forca": "descreva o ativo ou processo mais quantificável e escalável do negócio, desde que presente no texto.",
-    "desc_fraqueza": "descreva a falha estrutural ou mecânica financeira mais evidente na premissa, apontando lacunas de informação se houver.",
+    "instrucao_persona": "Aja como um Auditor Financeiro estritamente matemático e lógico. Julgue o modelo puramente pela mecânica financeira e métricas inerentes ao 'Lean Canvas'. REGRA CRÍTICA ('No Evidence Clause'): Avalie ESTRITAMENTE com base nos dados fornecidos. Se a premissa não fornecer dados suficientes para uma conclusão financeira, declare 'Evidência insuficiente' em vez de inventar números ou suposições.",
+    "desc_problema_mercado": "faça uma análise fria e objetiva focada no tamanho do mercado descrito e na fricção mecânica/custo para aquisição desses clientes.",
+    "desc_solucao_proposta": "faça uma análise rigorosa da complexidade logística, de infraestrutura e técnica requerida pela solução descrita.",
+    "desc_receitas_custos": "avalie a lógica estrutural da monetização (relação teórica entre estrutura de custos e fluxos de receita). NÃO confabule ou invente valores de CAC, LTV ou margens que não estejam no texto.",
+    "desc_vantagem_injusta": "descreva o ativo ou processo mais quantificável e escalável do negócio que atue como barreira de entrada, desde que presente no texto.",
+    "desc_risco_critico": "descreva a falha estrutural financeira ou mecânica mais evidente nas premissas, apontando lacunas críticas de informação, se houver.",
 }
 
 
@@ -170,17 +168,19 @@ def executar_experimento(
         )
         return
 
-    # Nova estrutura de colunas do seu Dataset
-    colunas_necessarias = ["ID_Startup", "Setor_Industria", "Modelo_Negocios"]
+    colunas_necessarias = [
+        "ID_Startup",
+        "Setor_Industria",
+        "Ano_Evento_Critico",
+        "Nome_Anonimizado",
+        "Modelo_Negocios",
+        "Contexto_Mercado_Equipe",
+    ]
     for col in colunas_necessarias:
         if col not in df.columns:
             print(f"[ERRO] Coluna esperada '{col}' não encontrada no dataset.")
             print(f"Colunas disponíveis: {df.columns.tolist()}")
             return
-
-    respostas_genericas = []
-    respostas_advogado_diabo = []
-    respostas_analiticas = []
 
     print(
         f"Iniciando inferência com o modelo {MODEL_NAME} (Temperatura: {TEMPERATURE})"
@@ -192,12 +192,35 @@ def executar_experimento(
 
     for index, row in tqdm(df.iterrows(), total=len(df), desc="A processar Startups"):
         setor = row["Setor_Industria"]
+        ano_analise = row["Ano_Evento_Critico"]
+        nome_anonimizado = row["Nome_Anonimizado"]
         modelo_negocios = row["Modelo_Negocios"]
+        contexto_mercado = row["Contexto_Mercado_Equipe"]
         user_prompt_startup = USER_TEMPLATE.format(
-            setor=setor, modelo_negocios=modelo_negocios
+            setor=setor,
+            ano_analise=ano_analise,
+            nome_anonimizado=nome_anonimizado,
+            modelo_negocios=modelo_negocios,
+            contexto_mercado=contexto_mercado,
         )
 
-        # 1. Prompt Genérico
+        # 1. Prompt Controle
+        system_controle = SYSTEM_TEMPLATE.format(
+            taxonomia=TAXONOMIA_STR, **CONFIG_CONTROLE
+        )
+
+        resp_controle_str = consultar_llm(
+            system_controle, user_prompt_startup, temperature=TEMPERATURE
+        )
+        cat_con, prob_con, veredit_con, json_con = fazer_parse_json(resp_controle_str)
+
+        # Adicione aos DataFrames parciais
+        df.at[index, "Con_Categoria_Risco"] = cat_con
+        df.at[index, "Con_Probabilidade"] = prob_con
+        df.at[index, "Con_Veredito"] = veredit_con
+        df.at[index, "Resposta_Controle"] = json_con
+
+        # 2. Prompt Genérico
         system_generico = SYSTEM_TEMPLATE.format(
             taxonomia=TAXONOMIA_STR, **CONFIG_GENERICA
         )
@@ -206,14 +229,14 @@ def executar_experimento(
             system_generico, user_prompt_startup, temperature=TEMPERATURE
         )
         cat_gen, prob_gen, veredito_gen, json_gen = fazer_parse_json(resp_generico_str)
-        respostas_genericas.append(json_gen)
 
         # Adicione aos DataFrames parciais
         df.at[index, "Gen_Categoria_Risco"] = cat_gen
         df.at[index, "Gen_Probabilidade"] = prob_gen
         df.at[index, "Gen_Veredito"] = veredito_gen
+        df.at[index, "Resposta_Generica"] = json_gen
 
-        # 2. Prompt Advogado do Diabo
+        # 3. Prompt Advogado do Diabo
         system_diabo = SYSTEM_TEMPLATE.format(taxonomia=TAXONOMIA_STR, **CONFIG_DIABO)
         resp_diabo_str = consultar_llm(
             system_diabo, user_prompt_startup, temperature=TEMPERATURE
@@ -221,13 +244,13 @@ def executar_experimento(
         cat_diabo, prob_diabo, veredito_diabo, json_diabo = fazer_parse_json(
             resp_diabo_str
         )
-        respostas_advogado_diabo.append(json_diabo)
 
         df.at[index, "Diabo_Categoria_Risco"] = cat_diabo
         df.at[index, "Diabo_Probabilidade"] = prob_diabo
         df.at[index, "Diabo_Veredito"] = veredito_diabo
+        df.at[index, "Resposta_Advogado_Diabo"] = json_diabo
 
-        # 3. Prompt Analítico
+        # 4. Prompt Analítico
         system_analitico = SYSTEM_TEMPLATE.format(
             taxonomia=TAXONOMIA_STR, **CONFIG_ANALITICA
         )
@@ -237,23 +260,15 @@ def executar_experimento(
         cat_anali, prob_anali, veredito_anali, json_anali = fazer_parse_json(
             resp_analitico_str
         )
-        respostas_analiticas.append(json_anali)
 
         df.at[index, "Anali_Categoria_Risco"] = cat_anali
         df.at[index, "Anali_Probabilidade"] = prob_anali
         df.at[index, "Anali_Veredito"] = veredito_anali
+        df.at[index, "Resposta_Analitica"] = json_anali
 
-        # SALVAMENTO PARCIAL (CHECKPOINT - Bug corrigido)
+        # SALVAMENTO PARCIAL (CHECKPOINT)
         df_parcial = df.iloc[: index + 1].copy()
-        df_parcial["Resposta_Generica"] = respostas_genericas
-        df_parcial["Resposta_Advogado_Diabo"] = respostas_advogado_diabo
-        df_parcial["Resposta_Analitica"] = respostas_analiticas
-
         df_parcial.to_csv(arquivo_saida, index=False, encoding="utf-8")
-
-    df["Resposta_Generica"] = respostas_genericas
-    df["Resposta_Advogado_Diabo"] = respostas_advogado_diabo
-    df["Resposta_Analitica"] = respostas_analiticas
 
     print(f"\nSalvando resultados finais em: {arquivo_saida}...")
     df.to_csv(arquivo_saida, index=False, encoding="utf-8")
@@ -272,8 +287,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    # Atualizado para o nome do novo Dataset
-    ARQUIVO_INPUT = "new_dataset.csv"
-    ARQUIVO_OUTPUT = "resultados/resultados_experimento.csv"
+    ARQUIVO_INPUT = "dataset_experimento.csv"
+    ARQUIVO_OUTPUT = "resultados/resultados_experimento_21.2.csv"
 
     executar_experimento(ARQUIVO_INPUT, ARQUIVO_OUTPUT, limite_linhas=args.limit)
