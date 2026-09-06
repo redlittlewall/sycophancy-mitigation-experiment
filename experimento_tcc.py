@@ -319,13 +319,19 @@ if __name__ == "__main__":
         "--model", type=str, default=None,
         help=f"Override do modelo Ollama (padrão: {MODEL_NAME})"
     )
+    parser.add_argument(
+        "--output", type=str, default=None,
+        help="Caminho customizado do arquivo CSV de saída"
+    )
     args = parser.parse_args()
 
     if args.model:
         MODEL_NAME = args.model
         print(f"[Override] Modelo alterado para: {MODEL_NAME}")
 
+    # Gera nome de saída seguro e limpo baseado no modelo (ex: resultados_qwen2.5_14b.csv)
+    nome_sanitizado = MODEL_NAME.replace(":", "_").replace("/", "_")
     ARQUIVO_INPUT  = "dataset_experimento.csv"
-    ARQUIVO_OUTPUT = "resultados/resultados_experimento_v2.csv"
+    ARQUIVO_OUTPUT = args.output or f"resultados/resultados_{nome_sanitizado}.csv"
 
     executar_experimento(ARQUIVO_INPUT, ARQUIVO_OUTPUT, limite_linhas=args.limit)
