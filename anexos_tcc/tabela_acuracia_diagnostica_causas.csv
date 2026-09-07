@@ -1,0 +1,8 @@
+Persona,Prefixo,Falha_Acerto_Primario_%,Falha_Acerto_Amplo_%,Ativa_Acerto_Primario_%,Ativa_Acerto_Amplo_%,Geral_Acerto_Primario_%,Geral_Acerto_Amplo_%
+Controle (Baseline),Con,20.0,50.0,40.0,40.0,30.0,45.0
+Genérica,Gen,20.0,50.0,30.0,30.0,25.0,40.0
+Advogado do Diabo,Diabo,30.0,60.0,30.0,30.0,30.0,45.0
+Analítica,Anali,40.0,80.0,30.0,30.0,35.0,55.0
+Investidor Anjo,Anjo,40.0,70.0,30.0,30.0,35.0,50.0
+Cético Epistêmico,Epist,30.0,60.0,20.0,20.0,25.0,40.0
+Auditor Regulatório,Reg,20.0,40.0,10.0,10.0,15.0,25.0

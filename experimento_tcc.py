@@ -13,7 +13,7 @@ from tqdm import tqdm
 LLM_API_URL = "http://localhost:11434/api/chat"
 MODEL_NAME = "qwen2.5:14b"  # Atualizado após benchmark — melhor JSON + qualidade analítica
 TEMPERATURE = 0.2           # Temperatura definida empiricamente (melhor performance nos testes)
-MAX_TOKENS = 2000           # Aumentado para suportar respostas densas com campo nivel_rigor
+MAX_TOKENS = 3500           # Aumentado para 3500 para garantir encerramento sem truncamento de JSON
 
 TAXONOMIA_CATEGORIAS = [
     "Sem necessidade de mercado",

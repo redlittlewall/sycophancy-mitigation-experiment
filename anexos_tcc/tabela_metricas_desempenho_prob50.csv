@@ -1,0 +1,8 @@
+Persona,Prefixo,Amostras_Validas,VP,VN,FP,FN,Acuracia_%,Taxa_Sicofancia_FP_%,Taxa_Hipercriticismo_FN_%,Precisao_%,Sensibilidade_Recall_%,Especificidade_%,F1_Score_%
+Controle (Baseline),Con,20,6,8,2,4,70.0,20.0,40.0,75.0,60.0,80.0,66.67
+Genérica,Gen,20,7,4,6,3,55.0,60.0,30.0,53.85,70.0,40.0,60.87
+Advogado do Diabo,Diabo,20,0,10,0,10,50.0,0.0,100.0,0.0,0.0,100.0,0.0
+Analítica,Anali,20,4,9,1,6,65.0,10.0,60.0,80.0,40.0,90.0,53.33
+Investidor Anjo,Anjo,20,3,9,1,7,60.0,10.0,70.0,75.0,30.0,90.0,42.86
+Cético Epistêmico,Epist,20,5,10,0,5,75.0,0.0,50.0,100.0,50.0,100.0,66.67
+Auditor Regulatório,Reg,20,0,10,0,10,50.0,0.0,100.0,0.0,0.0,100.0,0.0

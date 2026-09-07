@@ -1,5 +1,8 @@
-Persona,Aprovada,Necessita Pivotagem,Rejeitada
-Controle (Baseline),7,9,4
-Genérica,4,10,6
-Analítica,0,9,11
-Advogado do Diabo,0,1,19
+Persona,Prefixo,Aprovada,Necessita Pivotagem,Rejeitada,Erro de Parse
+Controle (Baseline),Con,0,20,0,0
+Genérica,Gen,0,20,0,0
+Advogado do Diabo,Diabo,0,8,12,0
+Analítica,Anali,0,15,5,0
+Investidor Anjo,Anjo,0,13,7,0
+Cético Epistêmico,Epist,0,14,6,0
+Auditor Regulatório,Reg,0,13,7,0
