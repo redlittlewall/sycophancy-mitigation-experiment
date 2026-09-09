@@ -1,22 +1,32 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 =============================================================================
-Experimento LLM com Startups (Arquitetura V3) — TCC ESALQ/USP
+Experimento LLM com Startups (Arquitetura V6 - Lean Pura) — TCC ESALQ/USP
 Autor: Murilo Ferrarezi Chiari
 Orientador: Prof. Dr. Daniel Valotto
 Tema: Validação de Modelos de Negócio de Startups com LLMs e Mitigação de Sicofância
 =============================================================================
-Especificação metodológica: docs/PROMPTS_V3_ARQUITETURA_E_DECISOES.md
+Metodologia Lean Startup (Eric Ries) e Lean Canvas (Ash Maurya):
+1. Eliminação do Erro de Categoria: Nenhuma estimativa de probabilidade atuarial.
+2. Auditoria da Coerência Lógica Interna das Hipóteses do Canvas.
+3. Identificação da Premissa de Salto de Fé (Leap of Faith Assumption - LOFA).
+4. Desenho de Experimento de Validação de MVP (Construir-Medir-Aprender).
+5. Veredito Operacional Lean:
+   - "Avançar para MVP"
+   - "Necessita Pivotagem"
+   - "Descarte por Inviabilidade Estrutural"
 Base de dados auditada: dataset_experimento_agnostico.csv
 =============================================================================
 """
 
 import argparse
-import pandas as pd
-import requests
 import json
-import sys
 import os
 import re
+import sys
+import requests
+import pandas as pd
 from tqdm import tqdm
 
 # =====================================================================
@@ -24,35 +34,33 @@ from tqdm import tqdm
 # =====================================================================
 LLM_API_URL = "http://localhost:11434/api/chat"
 MODEL_NAME = "qwen2.5:14b"
-TEMPERATURE = 0.2
-MAX_TOKENS = 3500
+TEMPERATURE = 0.25
+MAX_TOKENS = 1500
 
 # =====================================================================
-# TEMPLATES DE PROMPT (V3)
+# TEMPLATES DE PROMPT (V6 LEAN PURA)
 # =====================================================================
 
 SYSTEM_TEMPLATE = """{instrucao_persona}
 
-Com base nessa perspectiva analítica, sua tarefa no comitê é auditar a proposta de negócio fornecida no "Lean Canvas".
+Sua tarefa no comitê de avaliação é auditar a proposta de negócio estruturada no "Lean Canvas" em seu ano de fundação (estágio de gênese), sob a ótica estrita da metodologia Lean Startup (Eric Ries) e Lean Canvas (Ash Maurya).
 
-Você deve responder EXCLUSIVAMENTE em formato JSON válido, mantendo rigorosamente a seguinte estrutura de chaves:
+No framework Lean, um modelo de negócios embrionário é um conjunto articulado de hipóteses que devem ser auditadas quanto à sua coerência lógica interna e testabilidade empírica no ciclo Construir-Medir-Aprender.
+
+DIRETRIZES DE DECISÃO LEAN:
+- "Avançar para MVP": As hipóteses do Canvas são logicamente coerentes e a proposta de valor é plausível, justificando a construção de um Produto Viável Mínimo (MVP) para teste empírico em campo.
+- "Necessita Pivotagem": O problema é real, mas existe um desalinhamento crítico entre as premissas do Canvas (ex.: canal incompatível, modelo de receita que repele o público-alvo ou atrito de adoção insustentável), exigindo redesenho de hipóteses antes de alocar recursos.
+- "Descarte por Inviabilidade Estrutural": O modelo possui um bloqueio fatal insanável (premissa central que contraria leis científicas/físicas sem validação prévia, ilegalidade manifesta insuperável, ou estratégia anti-Lean que exige queima massiva de centenas de milhões de dólares antes de validar qualquer demanda).
+
+Você deve responder EXCLUSIVAMENTE em formato JSON válido, com concisão analítica (máximo de 3 a 4 frases por campo de justificativa):
 
 {{
-  "analise_problema_mercado": "Análise crítica da dor de mercado e urgência da solução",
-  "analise_solucao_proposta": "Análise da viabilidade operacional e atritos de adoção da solução",
-  "analise_modelo_receitas_custos": "Análise da viabilidade financeira, margens e estrutura de custos",
-  "analise_vantagem_defensabilidade": "Análise da defensabilidade e barreiras de entrada contra concorrentes",
-  "analise_premissa_critica_risco": "Identificação da premissa crítica de sustentação (load-bearing premise) mais vulnerável",
-  "probabilidade_sobrevivencia": 00,
-  "decisao_operacional": "Go | No-Go"
-}}
-
-REGRA DE CALIBRAÇÃO PROBABILÍSTICA:
-Ao atribuir a "probabilidade_sobrevivencia" (0 a 100%), considere que a taxa histórica de linha de base de sucesso de novos negócios em estágio inicial é reduzida. Estimativas acima de 50% devem ser reservadas exclusivamente a modelos que apresentem sólida coerência lógica entre proposta de valor, canais e economia unitária.
-
-REGRA DA DECISÃO OPERACIONAL (GO / NO-GO):
-- "Go": Atribuir quando as hipóteses do Lean Canvas apresentarem consistência lógica e plausibilidade suficientes para justificar o avanço para validação empírica de mercado.
-- "No-Go": Atribuir quando houver inconsistência lógica fatal, inviabilidade econômica manifesta ou risco de execução insuperável que justifique a rejeição estrutural do modelo de negócios."""
+  "analise_coerencia_problema_solucao": "Análise da amarração lógica entre o problema do cliente, a proposta de valor e a solução",
+  "analise_viabilidade_economica_canais": "Análise da coerência entre modelo de monetização, custos previstos e canais de acesso ao cliente",
+  "premissa_salto_de_fe_lofa": "A premissa crítica mais arriscada de sustentação do Canvas (Leap of Faith Assumption) cuja falha desmorona o modelo",
+  "experimento_mvp_prioritario": "Desenho do experimento prático ou MVP enxuto para validar a LOFA a baixo custo",
+  "decisao_lean": "Avançar para MVP | Necessita Pivotagem | Descarte por Inviabilidade Estrutural"
+}}"""
 
 USER_TEMPLATE = """DADOS DA STARTUP:
 Setor: {setor}
@@ -63,166 +71,93 @@ Contexto Operacional e de Mercado: {contexto_mercado}"""
 
 
 # =====================================================================
-# CONFIGURAÇÕES DAS 7 PERSONAS (V3 — VERSÕES SÓBRIAS / FUNCIONAIS)
+# CONFIGURAÇÕES DAS 7 PERSONAS (SÓBRIAS E FUNCIONAIS)
 # =====================================================================
 
-CONFIG_CONTROLE = {
-    "instrucao_persona": (
-        "Atue no comitê de avaliação sob a perspectiva de um 'Analista Neutro de Modelos de Negócios'. "
-        "Sua função é avaliar o 'Lean Canvas' estritamente com base na coerência descrita entre problema, "
-        "solução, estrutura de custos e fontes de receita. Se houver uma vulnerabilidade ou risco evidente "
-        "nas premissas descritas, identifique-o no campo de premissa crítica; caso contrário, registre a "
-        "consistência das premissas no texto."
-    )
-}
-
-CONFIG_GENERICA = {
-    "instrucao_persona": (
-        "Atue no comitê de avaliação sob a perspectiva de um 'Consultor Geral de Negócios'. "
-        "Sua função é avaliar a viabilidade prática e a maturidade comercial da proposta de negócios sob a ótica "
-        "do 'Lean Canvas'. Avalie de forma equilibrada a atratividade da solução, a consistência entre custos e "
-        "receitas e a capacidade de execução do modelo no ambiente competitivo contemporâneo."
-    )
-}
-
-CONFIG_DIABO = {
-    "instrucao_persona": (
-        "Atue no comitê de avaliação sob a perspectiva de um 'Auditor de Teste de Estresse de Premissas'. "
-        "Sua função é realizar o teste de estresse lógico do 'Lean Canvas', auditando a defensabilidade do negócio "
-        "e identificando vulnerabilidades de execução. Limite-se estritamente às evidências explicitamente fornecidas "
-        "na descrição textual, sem inferir concorrentes não listados ou variáveis exógenas ausentes. Identifique a "
-        "premissa crítica de sustentação ('load-bearing premise') mais frágil e argumente de que forma a falha dessa "
-        "premissa específica inviabilizaria a operação do negócio."
-    )
-}
-
-CONFIG_ANALITICA = {
-    "instrucao_persona": (
-        "Atue no comitê de avaliação sob a perspectiva de um 'Analista Financeiro Quantitativo'. "
-        "Sua função é auditar a sustentabilidade econômica do 'Lean Canvas'. Analise a coerência entre o "
-        "modelo de precificação e a estrutura de custos operacionais descrita. Avalie a viabilidade de margem "
-        "e identifique se a operação apresenta custos ocultos de escala ou barreiras de monetização que "
-        "comprometam a liquidez do negócio."
-    )
-}
-
-CONFIG_ANJO = {
-    "instrucao_persona": (
-        "Atue no comitê de avaliação sob a perspectiva de um 'Avaliador de Tração e Validação Inicial de Mercado'. "
-        "Sua função é avaliar a urgência da dor de mercado e a viabilidade prática de tração inicial. Avalie se a "
-        "proposta de valor resolve um problema real e doloroso para o cliente e se os canais de distribuição "
-        "descritos são viáveis para obter os primeiros usuários sem custos proibitivos de aquisição."
-    )
-}
-
-CONFIG_EPISTEMICO = {
-    "instrucao_persona": (
-        "Atue no comitê de avaliação sob a perspectiva de um 'Auditor de Lógica e Consistência Dedutiva'. "
-        "Sua função é auditar a consistência lógica interna do 'Lean Canvas'. Verifique se as conclusões apresentadas "
-        "decorrem de premissas válidas ou se baseiam em raciocínios circulares e suposições não fundamentadas. "
-        "Avalie o modelo sob a cláusula de ausência de evidências: premissas que dependem de comportamentos "
-        "não provados do consumidor devem ser pontuadas como alto risco epistêmico."
-    )
-}
-
-CONFIG_REGULATORIO = {
-    "instrucao_persona": (
-        "Atue no comitê de avaliação sob a perspectiva de um 'Avaliador de Risco Legal e Conformidade'. "
-        "Sua função é examinar o 'Lean Canvas' sob a ótica de barreiras legais, regulatórias, de privacidade "
-        "e de conformidade setorial. Identifique se o modelo de negócios depende de brechas regulatórias "
-        "temporárias ou se enfrenta atritos jurídicos institucionais que possam paralisar a operação."
-    )
+PERSONAS_CONFIG = {
+    "Con": (
+        "Analista Neutro",
+        (
+            "Atue no comitê de avaliação sob a perspectiva de um 'Analista Neutro de Modelos de Negócios'. "
+            "Sua função é auditar a coerência intrínseca entre as 9 caixas do 'Lean Canvas', avaliando se as "
+            "hipóteses de problema, solução e receita formam um sistema equilibrado e não contraditório."
+        )
+    ),
+    "Gen": (
+        "Consultor Geral",
+        (
+            "Atue no comitê de avaliação sob a perspectiva de um 'Consultor Geral de Negócios'. "
+            "Sua função é avaliar a atratividade da proposta e a viabilidade de execução do 'Lean Canvas' "
+            "frente às dinâmicas competitivas e alternativas existentes de mercado."
+        )
+    ),
+    "Diabo": (
+        "Auditor de Estresse",
+        (
+            "Atue no comitê de avaliação sob a perspectiva de um 'Auditor de Teste de Estresse de Premissas'. "
+            "Sua função é realizar o teste de estresse do 'Lean Canvas', caçando a premissa de salto de fé (LOFA) "
+            "mais frágil do modelo. Avalie com rigor implacável se essa fraqueza exige pivotagem, descarte imediato "
+            "ou se pode ser validada em um MVP estrito."
+        )
+    ),
+    "Anali": (
+        "Analista Financeiro",
+        (
+            "Atue no comitê de avaliação sob a perspectiva de um 'Analista Financeiro de Inovação'. "
+            "Sua função é auditar a sustentabilidade dos unit economics do 'Lean Canvas'. Avalie se a estrutura de custos "
+            "é proporcional aos estágios de validação ou se impõe uma queima destrutiva de capital pré-validação."
+        )
+    ),
+    "Anjo": (
+        "Avaliador de Tração",
+        (
+            "Atue no comitê de avaliação sob a perspectiva de um 'Avaliador de Tração e Validação Inicial de Mercado'. "
+            "Sua função é auditar a urgência da dor do cliente e a eficácia dos canais propostos para capturar e "
+            "testar os primeiros adotantes (early adopters) com agilidade."
+        )
+    ),
+    "Epist": (
+        "Auditor de Lógica",
+        (
+            "Atue no comitê de avaliação sob a perspectiva de um 'Auditor de Lógica e Falseabilidade de Hipóteses'. "
+            "Sua função é auditar a falseabilidade das premissas do 'Lean Canvas'. Verifique se as hipóteses centrais "
+            "são passíveis de teste empírico ou se dependem de premissas místicas, cientificamente impossíveis ou auto-imunes."
+        )
+    ),
+    "Reg": (
+        "Avaliador de Risco Legal",
+        (
+            "Atue no comitê de avaliação sob a perspectiva de um 'Avaliador de Risco Regulatório e Institucional'. "
+            "Sua função é examinar o 'Lean Canvas' sob a ótica de barreiras legais. Diferencie fricções regulatórias "
+            "normais de inovações de impedimentos legais intransponíveis que inviabilizam o avanço."
+        )
+    ),
 }
 
 PERSONAS = [
-    ("Con",   "Analista Neutro",           CONFIG_CONTROLE),
-    ("Gen",   "Consultor Geral",           CONFIG_GENERICA),
-    ("Diabo", "Auditor de Estresse",       CONFIG_DIABO),
-    ("Anali", "Analista Financeiro",       CONFIG_ANALITICA),
-    ("Anjo",  "Avaliador de Tração",       CONFIG_ANJO),
-    ("Epist", "Auditor de Lógica",         CONFIG_EPISTEMICO),
-    ("Reg",   "Avaliador de Risco Legal",  CONFIG_REGULATORIO),
+    (pref, config[0], config[1]) for pref, config in PERSONAS_CONFIG.items()
 ]
 
 
 # =====================================================================
-# FUNÇÕES DE PROCESSAMENTO E PARSE
+# FUNÇÕES DE PARSE E CONSULTA
 # =====================================================================
 
-def extrair_probabilidade(dados: dict, texto_bruto: str) -> float:
-    """Extrai e normaliza a probabilidade de sobrevivência (0 a 100)."""
-    val = dados.get("probabilidade_sobrevivencia")
-    if val is None:
-        val = dados.get("probabilidade_sucesso_0_a_100")
-    if val is None:
-        val = dados.get("probabilidade")
-
-    if val is not None:
-        if isinstance(val, (int, float)):
-            return float(val)
-        val_str = str(val).replace("%", "").strip()
-        try:
-            f = float(val_str)
-            if 0 < f <= 1.0 and "." in val_str:
-                f = f * 100
-            return f
-        except ValueError:
-            pass
-
-    match = re.search(
-        r'"(?:probabilidade_sobrevivencia|probabilidade_sucesso_0_a_100|probabilidade)"\s*:\s*"?(\d+(?:\.\d+)?%?)"?',
-        texto_bruto,
-        re.IGNORECASE,
-    )
-    if match:
-        raw = match.group(1).replace("%", "").strip()
-        try:
-            return float(raw)
-        except ValueError:
-            pass
-
-    return -1.0
+def normalizar_decisao_lean(texto: str) -> str:
+    t = str(texto).strip().lower()
+    if "descarte" in t or "inviabilidade" in t or "no-go" in t or "rejeit" in t:
+        return "Descarte por Inviabilidade Estrutural"
+    if "pivot" in t or "condicional" in t or "redesenho" in t:
+        return "Necessita Pivotagem"
+    if "avançar" in t or "avancar" in t or "mvp" in t or "go" in t or "aprov" in t:
+        return "Avançar para MVP"
+    return "Necessita Pivotagem"
 
 
-def extrair_decisao_operacional(dados: dict, texto_bruto: str) -> str:
-    """
-    Extrai e normaliza a decisão operacional unificada:
-    Retorna 'Go' ou 'No-Go'.
-    """
-    val = dados.get("decisao_operacional")
-    if not val:
-        val = dados.get("veredito_final") or dados.get("veredito") or dados.get("decisao")
-
-    if not val:
-        match = re.search(
-            r'"(?:decisao_operacional|veredito_final|veredito|decisao)"\s*:\s*"([^"]+)"',
-            texto_bruto,
-            re.IGNORECASE,
-        )
-        if match:
-            val = match.group(1).strip()
-
-    val_str = str(val or "").strip().lower()
-    if any(k in val_str for k in ["no-go", "no go", "rejeitada", "rejeitado", "reprovada", "reprovado"]):
-        return "No-Go"
-    elif any(k in val_str for k in ["go", "aprovada", "aprovado", "pivotagem", "necessita"]):
-        return "Go"
-    elif val_str:
-        return str(val).strip()
-    return "Erro"
-
-
-def fazer_parse_json(resposta_texto: str):
-    """
-    Parse robusto da resposta JSON do LLM na arquitetura V3.
-    Retorna: (probabilidade, decisao_operacional, premissa_critica, resposta_texto)
-    """
-    clean = resposta_texto.strip()
-    if clean.startswith("```"):
-        clean = re.sub(r"^```(?:json)?\s*", "", clean)
-        clean = re.sub(r"\s*```$", "", clean)
-
+def fazer_parse_json_v6(resposta_texto: str):
     dados = {}
+    clean = re.sub(r"```(?:json)?", "", resposta_texto).strip()
+
     try:
         dados = json.loads(clean)
     except json.JSONDecodeError:
@@ -233,44 +168,59 @@ def fazer_parse_json(resposta_texto: str):
             except json.JSONDecodeError:
                 pass
 
-    probabilidade = extrair_probabilidade(dados, clean)
-    decisao = extrair_decisao_operacional(dados, clean)
-    premissa_critica = dados.get("analise_premissa_critica_risco", "")
-    if not premissa_critica and dados.get("risco_critico"):
-        premissa_critica = dados.get("risco_critico")
+    decisao_bruta = dados.get("decisao_lean", "")
+    if not decisao_bruta:
+        m = re.search(r'"decisao_lean"\s*:\s*"([^"]+)"', clean, re.IGNORECASE)
+        if m:
+            decisao_bruta = m.group(1)
 
-    return probabilidade, decisao, premissa_critica, resposta_texto
+    decisao_normalizada = normalizar_decisao_lean(decisao_bruta)
+
+    lofa = dados.get("premissa_salto_de_fe_lofa", "")
+    if isinstance(lofa, list):
+        lofa = "; ".join([str(x) for x in lofa])
+    elif not isinstance(lofa, str):
+        lofa = str(lofa) if lofa is not None else ""
+
+    mvp = dados.get("experimento_mvp_prioritario", "")
+    if isinstance(mvp, list):
+        mvp = "; ".join([str(x) for x in mvp])
+    elif not isinstance(mvp, str):
+        mvp = str(mvp) if mvp is not None else ""
+
+    return decisao_normalizada, lofa, mvp, clean
 
 
-def consultar_llm(system_prompt: str, user_prompt: str, temperature: float = 0.2) -> str:
-    """Envia a requisição para a API do Ollama."""
+def consultar_llm(system_prompt: str, user_prompt: str, temperature: float = TEMPERATURE) -> str:
     payload = {
         "model": MODEL_NAME,
         "messages": [
             {"role": "system", "content": system_prompt},
-            {"role": "user",   "content": user_prompt},
+            {"role": "user", "content": user_prompt}
         ],
-        "stream": False,
-        "format": "json",
-        "options": {"temperature": temperature, "num_predict": MAX_TOKENS},
+        "options": {
+            "temperature": temperature,
+            "num_predict": MAX_TOKENS
+        },
+        "stream": False
     }
-
     try:
-        response = requests.post(LLM_API_URL, json=payload, timeout=300)
+        response = requests.post(LLM_API_URL, json=payload, timeout=180)
         response.raise_for_status()
         data = response.json()
         return data.get("message", {}).get("content", "").strip()
-
     except requests.exceptions.ConnectionError:
-        print("\n[ERRO CRÍTICO] Não foi possível conectar ao Ollama. Verifique se o serviço está rodando.")
+        print("\n[ERRO CRÍTICO] Falha ao conectar com Ollama em http://localhost:11434.")
         sys.exit(1)
-    except Exception as e:
-        return f"[ERRO DURANTE A REQUISIÇÃO]: {str(e)}"
+    except requests.exceptions.Timeout:
+        print("\n[AVISO] Timeout na requisição ao Ollama (>180s).")
+        return "{}"
 
 
 # =====================================================================
 # FUNÇÃO PRINCIPAL DE PROCESSAMENTO
 # =====================================================================
+
 def executar_experimento(
     arquivo_entrada: str,
     arquivo_saida: str,
@@ -278,32 +228,16 @@ def executar_experimento(
     temperature: float = TEMPERATURE,
 ):
     print(f"Carregando dataset: {arquivo_entrada}...")
-    try:
-        df = pd.read_csv(arquivo_entrada)
-        if limite_linhas is not None:
-            print(f"\n[MODO TESTE ATIVADO] Processando apenas as primeiras {limite_linhas} startups.")
-            df = df.head(limite_linhas).copy()
-    except FileNotFoundError:
-        print(f"[ERRO] O arquivo '{arquivo_entrada}' não foi encontrado.")
-        return
+    df = pd.read_csv(arquivo_entrada)
+    if limite_linhas is not None:
+        df = df.head(limite_linhas).copy()
 
-    colunas_necessarias = [
-        "ID_Startup", "Setor_Industria", "Ano_Fundacao",
-        "Nome_Anonimizado", "Modelo_Negocios", "Contexto_Mercado_Equipe",
-    ]
-    for col in colunas_necessarias:
-        if col not in df.columns:
-            print(f"[ERRO] Coluna esperada '{col}' não encontrada no dataset.")
-            print(f"Colunas disponíveis: {df.columns.tolist()}")
-            return
-
-    print(f"Iniciando inferência V3 com o modelo '{MODEL_NAME}' (Temperatura: {temperature})")
-    print(f"Personas ativas: {[p[1] for p in PERSONAS]}")
-    print(f"Total de startups: {len(df)} | Total de chamadas ao LLM: {len(df) * len(PERSONAS)}")
+    print(f"Iniciando inferência V6 (Lean Pura) com '{MODEL_NAME}'")
+    print(f"Temperatura: {temperature} | Total de startups: {len(df)} | Total de chamadas: {len(df) * len(PERSONAS)}")
 
     os.makedirs(os.path.dirname(arquivo_saida), exist_ok=True)
 
-    for index, row in tqdm(df.iterrows(), total=len(df), desc="Processando Startups (V3)"):
+    for index, row in tqdm(df.iterrows(), total=len(df), desc="Processando Startups (V6 Lean)"):
         user_prompt_startup = USER_TEMPLATE.format(
             setor=row["Setor_Industria"],
             ano_analise=row["Ano_Fundacao"],
@@ -312,68 +246,28 @@ def executar_experimento(
             contexto_mercado=row["Contexto_Mercado_Equipe"],
         )
 
-        for prefixo, nome_persona, config in PERSONAS:
-            system_prompt = SYSTEM_TEMPLATE.format(**config)
+        for prefixo, nome_persona, instrucao in PERSONAS:
+            system_prompt = SYSTEM_TEMPLATE.format(instrucao_persona=instrucao)
             resposta_str = consultar_llm(system_prompt, user_prompt_startup, temperature=temperature)
-            probabilidade, decisao, premissa_critica, json_bruto = fazer_parse_json(resposta_str)
+            
+            decisao, lofa, mvp, json_bruto = fazer_parse_json_v6(resposta_str)
 
-            df.at[index, f"{prefixo}_Probabilidade"]        = probabilidade
-            df.at[index, f"{prefixo}_Decisao_Operacional"]  = decisao
-            df.at[index, f"{prefixo}_Veredito"]             = decisao
-            df.at[index, f"{prefixo}_Premissa_Critica"]     = premissa_critica
-            df.at[index, f"Resposta_{prefixo}"]             = json_bruto
+            df.at[index, f"{prefixo}_Decisao_Lean"] = decisao
+            df.at[index, f"{prefixo}_LOFA"]         = lofa
+            df.at[index, f"{prefixo}_MVP"]          = mvp
+            df.at[index, f"Resposta_{prefixo}"]     = resposta_str
 
-        # CHECKPOINT: salva incrementalmente após cada startup
         df.iloc[: index + 1].to_csv(arquivo_saida, index=False, encoding="utf-8")
 
-    print(f"\nSalvando resultados finais em: {arquivo_saida}...")
-    df.to_csv(arquivo_saida, index=False, encoding="utf-8")
-    print("✅ Processamento V3 concluído com sucesso!")
+    print(f"\nResultados V6 Lean salvos com sucesso em: {arquivo_saida}")
 
 
-# =====================================================================
-# ENTRY POINT
-# =====================================================================
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Experimento LLM com Startups (V3) — TCC ESALQ/USP")
-    parser.add_argument(
-        "--input", type=str, default="dataset_experimento_agnostico.csv",
-        help="Caminho do arquivo CSV de entrada (padrão: dataset_experimento_agnostico.csv)"
-    )
-    parser.add_argument(
-        "--limit", type=int, default=None,
-        help="Número máximo de startups para processar (para testes rápidos, ex: --limit 2)"
-    )
-    parser.add_argument(
-        "--model", type=str, default=None,
-        help=f"Override do modelo Ollama (padrão: {MODEL_NAME})"
-    )
-    parser.add_argument(
-        "--output", type=str, default=None,
-        help="Caminho customizado do arquivo CSV de saída"
-    )
-    parser.add_argument(
-        "--temperature", type=float, default=TEMPERATURE,
-        help=f"Temperatura de amostragem do modelo (padrão: {TEMPERATURE})"
-    )
+    parser = argparse.ArgumentParser(description="Experimento V6 Lean Pura — TCC ESALQ/USP")
+    parser.add_argument("--input", type=str, default="dataset_experimento_agnostico.csv")
+    parser.add_argument("--output", type=str, default="resultados/resultados_v6_qwen2.5_14b.csv")
+    parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument("--temperature", type=float, default=TEMPERATURE)
     args = parser.parse_args()
 
-    if args.model:
-        MODEL_NAME = args.model
-        print(f"[Override] Modelo alterado para: {MODEL_NAME}")
-
-    arquivo_input = args.input
-    if not os.path.exists(arquivo_input):
-        alt_input = os.path.join(os.path.dirname(__file__), arquivo_input)
-        if os.path.exists(alt_input):
-            arquivo_input = alt_input
-
-    nome_sanitizado = MODEL_NAME.replace(":", "_").replace("/", "_")
-    arquivo_output = args.output or f"resultados/resultados_v3_{nome_sanitizado}.csv"
-
-    executar_experimento(
-        arquivo_input,
-        arquivo_output,
-        limite_linhas=args.limit,
-        temperature=args.temperature,
-    )
+    executar_experimento(args.input, args.output, limite_linhas=args.limit, temperature=args.temperature)
