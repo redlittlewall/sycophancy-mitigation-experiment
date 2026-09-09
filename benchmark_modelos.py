@@ -5,7 +5,7 @@ import pandas as pd
 import sys
 
 LLM_API_URL = "http://localhost:11434/api/chat"
-STARTUP_TESTE_CSV = "dataset_experimento.csv"
+STARTUP_TESTE_CSV = "dataset_experimento_agnostico.csv"
 
 TAXONOMIA_CATEGORIAS = [
     "Sem necessidade de mercado",

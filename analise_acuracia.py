@@ -64,6 +64,7 @@ CORES_PERSONAS = {p[0]: p[2] for p in PERSONAS}
 def carregar_dados():
     """Carrega o dataset experimental com fallback seguro."""
     caminhos = [
+        os.path.join(PASTA_RESULTADOS, "resultados_v3_qwen2.5_14b.csv"),
         os.path.join(PASTA_RESULTADOS, "resultados_qwen2.5_14b.csv"),
         os.path.join(PASTA_RESULTADOS, "resultados_experimento_v2.csv"),
         os.path.join(PASTA_RESULTADOS, "resultados_experimento.csv")
@@ -106,7 +107,7 @@ def calcular_metricas_classificacao(df):
             ver = str(row.get(col_ver, "")).strip()
             if ver != "Erro" and ver != "" and ver != "nan":
                 validos_v += 1
-                is_rejeitada = ("rejeitada" in ver.lower())
+                is_rejeitada = any(k in ver.lower() for k in ["rejeitada", "rejeitado", "no-go", "no go", "reprovada", "reprovado"])
                 if is_ativa:
                     if is_rejeitada:
                         fn_v += 1  # Erro por Hipercriticismo (rejeitou empresa sobrevivente)
@@ -250,8 +251,11 @@ def calcular_estatisticas_probabilidade_rigor(df):
         prob_ativa = df_valid[df_valid["Status_Real"] == "Ativa"][col_prob].mean()
         delta_discrim = prob_ativa - prob_falha
         
-        rigor_valid = df[df[col_rigor] >= 0][col_rigor]
-        rigor_medio = rigor_valid.mean() if len(rigor_valid) > 0 else np.nan
+        if col_rigor in df.columns:
+            rigor_valid = df[df[col_rigor] >= 0][col_rigor]
+            rigor_medio = rigor_valid.mean() if len(rigor_valid) > 0 else np.nan
+        else:
+            rigor_medio = np.nan
         
         registros.append({
             "Persona": nome,
@@ -262,7 +266,7 @@ def calcular_estatisticas_probabilidade_rigor(df):
             "Prob_Media_Falha": round(prob_falha, 2),
             "Prob_Media_Ativa": round(prob_ativa, 2),
             "Delta_Discriminacao": round(delta_discrim, 2),
-            "Nivel_Rigor_Medio": round(rigor_medio, 2)
+            "Nivel_Rigor_Medio": round(rigor_medio, 2) if not np.isnan(rigor_medio) else np.nan
         })
         
     return pd.DataFrame(registros)
@@ -307,6 +311,8 @@ def gerar_figura2_heatmap(df):
                 tag_txt = "Err"
             elif "rejeitada" in v_val.lower():
                 tag_txt = f"{int(p_num)}%\n[REJ]"
+            elif "aprovada" in v_val.lower():
+                tag_txt = f"{int(p_num)}%\n[APR]"
             else:
                 tag_txt = f"{int(p_num)}%\n[PIV]"
             linha_t.append(tag_txt)
@@ -466,6 +472,15 @@ def gerar_figura4_radar(df):
     labels_radar = [d[1] for d in dimensoes]
     num_vars = len(labels_radar)
 
+    alias_chaves = {
+        "analise_problema_mercado": ["analise_problema_mercado"],
+        "analise_solucao_proposta": ["analise_solucao_proposta"],
+        "analise_receitas_custos":  ["analise_modelo_receitas_custos", "analise_receitas_custos"],
+        "vantagem_injusta":         ["analise_vantagem_defensabilidade", "vantagem_injusta"],
+        "risco_critico":            ["analise_premissa_critica_risco", "risco_critico"],
+        "analise_equipe":           ["analise_equipe"],
+    }
+
     # Calcular densidade textual média de palavras por seção como proxy de profundidade
     personas_alvo = [
         ("Con",   "Controle (Baseline)", "#7f8c8d", "--"),
@@ -484,7 +499,12 @@ def gerar_figura4_radar(df):
             try:
                 dados = json.loads(raw)
                 for k in chaves:
-                    txt = str(dados.get(k, ""))
+                    txt = ""
+                    for alias in alias_chaves.get(k, [k]):
+                        val_al = dados.get(alias)
+                        if val_al:
+                            txt = str(val_al).strip()
+                            break
                     contagens[k].append(len(txt.split()))
             except:
                 pass
@@ -678,8 +698,10 @@ def exportar_tabelas(df, df_metr_ver, df_metr_prob, df_diag, df_stats):
     # 6. Tabela Matriz Completa de Diagnósticos por Startup
     cols_matriz = ["ID_Startup", "Nome_Real", "Status_Real", "Rotulo_Categorico", "Categoria_Evento_Critico"]
     for pref in PREFIXOS:
-        cols_matriz.extend([f"{pref}_Probabilidade", f"{pref}_Veredito", f"{pref}_Categoria_Risco"])
-    df_matriz_comp = df[cols_matriz].copy()
+        for c in [f"{pref}_Probabilidade", f"{pref}_Veredito", f"{pref}_Categoria_Risco", f"{pref}_Decisao_Operacional", f"{pref}_Premissa_Critica"]:
+            if c in df.columns and c not in cols_matriz:
+                cols_matriz.append(c)
+    df_matriz_comp = df[[c for c in cols_matriz if c in df.columns]].copy()
     c_mc = os.path.join(PASTA_ANEXOS, "tabela_matriz_riscos_diagnosticos_completa.csv")
     df_matriz_comp.to_csv(c_mc, index=False, encoding="utf-8")
     print(f"[OK] Tabela salva: {c_mc}")

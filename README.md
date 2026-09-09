@@ -42,7 +42,7 @@ Para assegurar o rigor acadêmico e a comparabilidade estatística:
 
 ---
 
-## 📁 Dataset Experimental (`dataset_experimento.csv`)
+## 📁 Dataset Experimental (`dataset_experimento_agnostico.csv`)
 *Atende aos Comentários #13, #19 e #20 do orientador.*
 
 A base conta com $n=20$ startups selecionadas segundo critérios rigorosos de elegibilidade histórica:

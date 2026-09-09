@@ -12,7 +12,7 @@ import requests
 import pandas as pd
 
 API_URL = "http://localhost:11434/api/chat"
-DATASET_PATH = "dataset_experimento.csv"
+DATASET_PATH = "dataset_experimento_agnostico.csv"
 OUTPUT_PATH = "resultados/mini_benchmark_resultados.csv"
 
 import os
