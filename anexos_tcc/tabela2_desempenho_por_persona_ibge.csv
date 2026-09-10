@@ -1,0 +1,9 @@
+Condição Experimental,Papel,Falha: MVP (%),Falha: Pivotagem (%),Falha: Descarte (%),Falha: Taxa Total de Bloqueio (%),Ativa: MVP (%),Ativa: Pivotagem (%),Ativa: Descarte (%)
+Modelo Puro (Base),Controle,40.0,50.0,10.0,60.0,80.0,10.0,10.0
+Cético Epistêmico,Consistência,40.0,50.0,10.0,60.0,80.0,20.0,0.0
+Advogado do Diabo,Tríade Crítica,30.0,60.0,10.0,70.0,90.0,10.0,0.0
+Analista Financeiro,Tríade Crítica,40.0,50.0,10.0,60.0,90.0,10.0,0.0
+Auditor Regulatório,Tríade Crítica,50.0,0.0,50.0,50.0,90.0,10.0,0.0
+Investidor Anjo,Tríade Propositiva,50.0,50.0,0.0,50.0,70.0,30.0,0.0
+Champion de Produto,Tríade Propositiva,20.0,60.0,20.0,80.0,90.0,10.0,0.0
+Estrategista de Inovação,Tríade Propositiva,60.0,40.0,0.0,40.0,90.0,10.0,0.0

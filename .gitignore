@@ -8,7 +8,19 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Opcional: Descomente a linha abaixo se NÃO quiser publicar o CSV com as respostas geradas
+# Logs e arquivos do sistema operacional
+*.log
+.DS_Store
+
+# Backups e arquivos legados (preservados localmente no disco)
+legado_v1_v3/
+resultados/backup_v2/
+resultados/teste_*
 *bkp*.csv
-/resultados_*
 *.html
+
+# Arquivos intermediários de versões experimentais (mantendo apenas arquivos canônicos)
+experimento_v6_1.py
+gerar_painel_validacao_v6.py
+CADERNO_VALIDACAO_AUDITORIA_V6*.md
+resultados/resultados_v6*
