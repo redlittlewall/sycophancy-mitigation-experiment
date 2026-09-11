@@ -1,14 +1,14 @@
-# 📋 PAINEL INTEGRAL DE VALIDAÇÃO E AUDITORIA MANUAL — ARQUITETURA V6
+# 📋 PAINEL INTEGRAL DE VALIDAÇÃO E AUDITORIA MANUAL
 ## Auditoria Qualitativa de Decisões Lean e Aderência Causal das LOFAs (Taxonomia CB Insights)
 **Trabalho de Conclusão de Curso (TCC) — ESALQ/USP**  
 **Autor:** Murilo Ferrarezi Chiari | **Orientador:** Prof. Dr. Daniel Valotto  
-**Fonte de Dados Auditada:** `resultados/resultados_v6_1_lean_com_categorias_lofa.csv`  
+**Fonte de Dados Auditada:** `resultados/resultados_lean_canvas_com_categorias_lofa.csv`  
 **Total de Casos:** 20 startups (10 Falhas / 10 Ativas) $\times$ 8 Condições = 160 inferências completas.
 
 ---
 
 ## 🎯 Objetivo Deste Documento e Roteiro de Auditoria Humana
-Este documento reúne **a totalidade das evidências empíricas geradas pela Arquitetura V6** com o objetivo de subsidiar a sua auditoria e validação manual como pesquisador. Ele foi estruturado para resolver duas necessidades fundamentais da dissertação:
+Este documento reúne **a totalidade das evidências empíricas geradas pelo experimento canônico** com o objetivo de subsidiar a sua auditoria e validação manual como pesquisador. Ele foi estruturado para resolver duas necessidades fundamentais da dissertação:
 
 1. **Validação do Juiz LLM (*LLM-as-a-Judge*):** Permitir que você confira se o enquadramento categorial da LOFA feito pela IA na taxonomia da CB Insights é coerente e correto;
 2. **Confrontação Causal Qualitativa:** Confrontar a premissa de maior fragilidade isolada no ano de gênese (`LOFA`) contra o desfecho histórico real de encerramento (`Motivo_Real_Gabarito`), alimentando as discussões do **Capítulo 4 (Resultados e Discussão)**.

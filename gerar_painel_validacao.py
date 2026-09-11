@@ -56,7 +56,7 @@ def gerar_painel(csv_entrada: str = DEFAULT_CSV_ENTRADA, md_saida_devils: str = 
     # -------------------------------------------------------------------------
     # CABEÇALHO E INSTRUÇÕES
     # -------------------------------------------------------------------------
-    md.append("# 📋 PAINEL INTEGRAL DE VALIDAÇÃO E AUDITORIA MANUAL — ARQUITETURA V6")
+    md.append("# 📋 PAINEL INTEGRAL DE VALIDAÇÃO E AUDITORIA MANUAL")
     md.append("## Auditoria Qualitativa de Decisões Lean e Aderência Causal das LOFAs (Taxonomia CB Insights)")
     md.append("**Trabalho de Conclusão de Curso (TCC) — ESALQ/USP**  ")
     md.append("**Autor:** Murilo Ferrarezi Chiari | **Orientador:** Prof. Dr. Daniel Valotto  ")
@@ -65,7 +65,7 @@ def gerar_painel(csv_entrada: str = DEFAULT_CSV_ENTRADA, md_saida_devils: str = 
     md.append("---\n")
 
     md.append("## 🎯 Objetivo Deste Documento e Roteiro de Auditoria Humana")
-    md.append("Este documento reúne **a totalidade das evidências empíricas geradas pela Arquitetura V6** com o objetivo de subsidiar a sua auditoria e validação manual como pesquisador. Ele foi estruturado para resolver duas necessidades fundamentais da dissertação:\n")
+    md.append("Este documento reúne **a totalidade das evidências empíricas geradas pelo experimento canônico** com o objetivo de subsidiar a sua auditoria e validação manual como pesquisador. Ele foi estruturado para resolver duas necessidades fundamentais da dissertação:\n")
     md.append("1. **Validação do Juiz LLM (*LLM-as-a-Judge*):** Permitir que você confira se o enquadramento categorial da LOFA feito pela IA na taxonomia da CB Insights é coerente e correto;")
     md.append("2. **Confrontação Causal Qualitativa:** Confrontar a premissa de maior fragilidade isolada no ano de gênese (`LOFA`) contra o desfecho histórico real de encerramento (`Motivo_Real_Gabarito`), alimentando as discussões do **Capítulo 4 (Resultados e Discussão)**.")
     md.append("\n> **Instruções para a Auditoria:** Utilize as caixas de seleção `[ ]` presentes em cada caso para anotar suas observações, confirmar acertos ou registrar discordâncias metodológicas com o juiz algorítmico.\n")
