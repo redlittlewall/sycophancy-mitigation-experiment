@@ -6,9 +6,14 @@ Gerador Canônico de Figuras e Tabelas Acadêmicas — TCC ESALQ/USP
 Arquitetura Lean Canvas com Auditoria de Showstoppers (Maurya / Ries)
 Autor: Murilo Ferrarezi Chiari | Orientador: Prof. Dr. Daniel Valotto
 =============================================================================
-Lê os resultados consolidados do experimento e gera:
-1. Figuras em alta resolução (300 DPI, padrão tipográfico ABNT/ESALQ);
-2. Tabelas estruturadas no padrão estatístico do IBGE em formato CSV e Markdown.
+Formatação Estrita conforme o Manual de Instruções e Normas do MBA USP/ESALQ:
+- Tabela 8: Regras Visuais e do Corpo do Gráfico:
+  1. Sem título interno no topo da área de plotagem;
+  2. Sem linhas de grade de fundo (grid);
+  3. Sem bordas externas superiores/direitas (top e right ocultos);
+  4. Eixos X e Y sólidos em preto puro (#000000) com largura de 1,5 pt;
+  5. Títulos dos eixos e rótulos em fonte Arial <= 11 pt, na cor preta;
+  6. Fundo limpo e branco, resolução de 300 DPI.
 =============================================================================
 """
 
@@ -24,20 +29,24 @@ import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import seaborn as sns
+from PIL import Image
 
-# Configurações de tipografia e estilo ABNT / ESALQ
+# Configurações canônicas de tipografia e estilo — Manual USP/ESALQ (Tabela 8)
 mpl.rcParams["font.family"] = "sans-serif"
 mpl.rcParams["font.sans-serif"] = ["Arial", "Helvetica", "DejaVu Sans"]
-mpl.rcParams["text.color"] = "#222222"
-mpl.rcParams["axes.labelcolor"] = "#222222"
-mpl.rcParams["xtick.color"] = "#222222"
-mpl.rcParams["ytick.color"] = "#222222"
+mpl.rcParams["text.color"] = "#000000"
+mpl.rcParams["axes.labelcolor"] = "#000000"
+mpl.rcParams["xtick.color"] = "#000000"
+mpl.rcParams["ytick.color"] = "#000000"
 mpl.rcParams["font.size"] = 10
-mpl.rcParams["axes.titlesize"] = 12
-mpl.rcParams["axes.titleweight"] = "bold"
-mpl.rcParams["axes.labelsize"] = 11
-mpl.rcParams["axes.labelweight"] = "bold"
+mpl.rcParams["axes.labelsize"] = 10
+mpl.rcParams["axes.labelweight"] = "normal"
+mpl.rcParams["axes.titlesize"] = 10
+mpl.rcParams["axes.titleweight"] = "normal"
 mpl.rcParams["figure.dpi"] = 300
+mpl.rcParams["axes.grid"] = False
+mpl.rcParams["figure.facecolor"] = "white"
+mpl.rcParams["axes.facecolor"] = "white"
 
 PASTA_ANEXOS = "anexos_tcc"
 
@@ -53,6 +62,24 @@ PERSONAS_ORDEM = [
 ]
 
 
+def aplicar_estilo_eixos_usp(ax, linewidth: float = 1.5, ticks_color: str = "#000000"):
+    """
+    Aplica rigorosamente os padrões da Tabela 8 do Manual USP/ESALQ:
+    - Eixos X e Y: linha sólida preta com 1,5 pt de espessura;
+    - Sem bordas superior e lateral direita (spines 'top' e 'right' desativadas);
+    - Linhas de grade de fundo desativadas;
+    - Marcas de escala (ticks) pretas e bem delineadas.
+    """
+    ax.grid(False)
+    for spine in ["top", "right"]:
+        ax.spines[spine].set_visible(False)
+    for spine in ["left", "bottom"]:
+        ax.spines[spine].set_visible(True)
+        ax.spines[spine].set_color(ticks_color)
+        ax.spines[spine].set_linewidth(linewidth)
+    ax.tick_params(axis="both", colors=ticks_color, width=linewidth, length=4)
+
+
 def carregar_dados(caminho_csv: str) -> pd.DataFrame:
     if not os.path.exists(caminho_csv):
         print(f"[ERRO] Arquivo de dados não encontrado: {caminho_csv}")
@@ -64,10 +91,11 @@ def carregar_dados(caminho_csv: str) -> pd.DataFrame:
 def gerar_figura1_distribuicao_decisoes(df: pd.DataFrame, pasta_saida: str):
     """
     Figura 1: Gráfico de Barras Empilhadas (100%) da Distribuição de Decisões
-    por Persona para Startups com Falha vs. Ativas.
+    por Condição Experimental para Startups com Falha vs. Ativas.
+    Manual USP/ESALQ: Sem título no topo, sem linhas de grade, eixos 1,5 pt preto.
     """
-    print("-> Gerando Figura 1: Distribuição de Decisões Lean...")
-    fig, (ax_falhas, ax_ativas) = plt.subplots(1, 2, figsize=(15, 6), sharey=True)
+    print("-> Gerando Figura 1: Distribuição de Decisões Lean (Padrão USP/ESALQ)...")
+    fig, (ax_falhas, ax_ativas) = plt.subplots(1, 2, figsize=(14, 5.5), sharey=True)
 
     falhas = df[df["Status_Real"] == "Falha"]
     ativas = df[df["Status_Real"] == "Ativa"]
@@ -102,17 +130,21 @@ def gerar_figura1_distribuicao_decisoes(df: pd.DataFrame, pasta_saida: str):
     y_pos = np.arange(len(nomes_personas))
 
     # Plot Falhas
-    b1 = ax_falhas.barh(y_pos, dados_f["Descarte"], color=cores["Reprovação por Showstopper (Descarte)"], edgecolor="white", height=0.65, label=labels_legenda["Reprovação por Showstopper (Descarte)"])
-    b2 = ax_falhas.barh(y_pos, dados_f["Pivot"], left=dados_f["Descarte"], color=cores["Necessita Pivotagem"], edgecolor="white", height=0.65, label=labels_legenda["Necessita Pivotagem"])
+    ax_falhas.barh(y_pos, dados_f["Descarte"], color=cores["Reprovação por Showstopper (Descarte)"],
+                   edgecolor="white", height=0.62, label=labels_legenda["Reprovação por Showstopper (Descarte)"])
+    ax_falhas.barh(y_pos, dados_f["Pivot"], left=dados_f["Descarte"], color=cores["Necessita Pivotagem"],
+                   edgecolor="white", height=0.62, label=labels_legenda["Necessita Pivotagem"])
     left_mvp = [d + p for d, p in zip(dados_f["Descarte"], dados_f["Pivot"])]
-    b3 = ax_falhas.barh(y_pos, dados_f["MVP"], left=left_mvp, color=cores["Avançar para MVP"], edgecolor="white", height=0.65, label=labels_legenda["Avançar para MVP"])
+    ax_falhas.barh(y_pos, dados_f["MVP"], left=left_mvp, color=cores["Avançar para MVP"],
+                   edgecolor="white", height=0.62, label=labels_legenda["Avançar para MVP"])
 
-    ax_falhas.set_title("A. Startups com Falha Real (n = 10)", fontsize=12, pad=12)
-    ax_falhas.set_xlabel("Percentual de Avaliações (%)")
+    # Identificação sutil dos painéis (sem título de topo)
+    ax_falhas.set_title("Painel A: Empresas com Falha Histórica (n = 10)", fontsize=10, pad=8, color="#000000")
+    ax_falhas.set_xlabel("Percentual de Avaliações (%)", fontsize=10, color="#000000")
     ax_falhas.set_yticks(y_pos)
-    ax_falhas.set_yticklabels(nomes_personas, fontweight="bold")
+    ax_falhas.set_yticklabels(nomes_personas, fontsize=9.5, color="#000000")
     ax_falhas.set_xlim(0, 100)
-    ax_falhas.grid(axis="x", linestyle="--", alpha=0.5)
+    aplicar_estilo_eixos_usp(ax_falhas)
 
     # Processar Ativas
     dados_a = {"MVP": [], "Pivot": [], "Descarte": []}
@@ -127,22 +159,25 @@ def gerar_figura1_distribuicao_decisoes(df: pd.DataFrame, pasta_saida: str):
         dados_a["Descarte"].append(des)
 
     # Plot Ativas
-    ax_ativas.barh(y_pos, dados_a["Descarte"], color=cores["Reprovação por Showstopper (Descarte)"], edgecolor="white", height=0.65)
-    ax_ativas.barh(y_pos, dados_a["Pivot"], left=dados_a["Descarte"], color=cores["Necessita Pivotagem"], edgecolor="white", height=0.65)
+    ax_ativas.barh(y_pos, dados_a["Descarte"], color=cores["Reprovação por Showstopper (Descarte)"],
+                   edgecolor="white", height=0.62)
+    ax_ativas.barh(y_pos, dados_a["Pivot"], left=dados_a["Descarte"], color=cores["Necessita Pivotagem"],
+                   edgecolor="white", height=0.62)
     left_mvp_a = [d + p for d, p in zip(dados_a["Descarte"], dados_a["Pivot"])]
-    ax_ativas.barh(y_pos, dados_a["MVP"], left=left_mvp_a, color=cores["Avançar para MVP"], edgecolor="white", height=0.65)
+    ax_ativas.barh(y_pos, dados_a["MVP"], left=left_mvp_a, color=cores["Avançar para MVP"],
+                   edgecolor="white", height=0.62)
 
-    ax_ativas.set_title("B. Startups Ativas no Mercado (n = 10)", fontsize=12, pad=12)
-    ax_ativas.set_xlabel("Percentual de Avaliações (%)")
+    ax_ativas.set_title("Painel B: Empresas Ativas no Mercado (n = 10)", fontsize=10, pad=8, color="#000000")
+    ax_ativas.set_xlabel("Percentual de Avaliações (%)", fontsize=10, color="#000000")
     ax_ativas.set_xlim(0, 100)
-    ax_ativas.grid(axis="x", linestyle="--", alpha=0.5)
+    aplicar_estilo_eixos_usp(ax_ativas)
 
-    # Legenda global centralizada no topo
-    fig.legend(loc="upper center", bbox_to_anchor=(0.5, 1.05), ncol=3, frameon=True, fontsize=10)
+    # Legenda global limpa no topo (sem moldura/fundo)
+    fig.legend(loc="upper center", bbox_to_anchor=(0.5, 1.04), ncol=3, frameon=False, fontsize=9.5)
 
     plt.tight_layout()
     caminho = os.path.join(pasta_saida, "figura1_distribuicao_decisoes_lean.png")
-    plt.savefig(caminho, bbox_inches="tight")
+    plt.savefig(caminho, bbox_inches="tight", dpi=300)
     plt.close()
     print(f"   [OK] Salvo em: {caminho}")
 
@@ -150,13 +185,12 @@ def gerar_figura1_distribuicao_decisoes(df: pd.DataFrame, pasta_saida: str):
 def gerar_figura2_heatmap_decisoes(df: pd.DataFrame, pasta_saida: str):
     """
     Figura 2: Heatmap Matricial Completo (20 Startups x 8 Personas)
-    Codificação Categorial: 0 (Descarte), 1 (Pivotagem), 2 (MVP).
+    Manual USP/ESALQ: Sem título no topo, sem linhas de grade, tipografia limpa.
     """
-    print("-> Gerando Figura 2: Heatmap Matricial de Decisões...")
+    print("-> Gerando Figura 2: Heatmap Matricial de Decisões (Padrão USP/ESALQ)...")
     prefixos = [p[0] for p in PERSONAS_ORDEM]
     nomes_personas = [p[1] for p in PERSONAS_ORDEM]
 
-    # Mapeamento numérico e rótulos
     mapa_num = {
         "Reprovação por Showstopper (Descarte)": 0,
         "Necessita Pivotagem": 1,
@@ -168,8 +202,6 @@ def gerar_figura2_heatmap_decisoes(df: pd.DataFrame, pasta_saida: str):
         2: "MVP"
     }
 
-    # Ordenar startups: Falhas primeiro, depois Ativas
-    ordem_startups = df["Nome_Real"].tolist()
     matriz_num = []
     matriz_txt = []
 
@@ -186,10 +218,9 @@ def gerar_figura2_heatmap_decisoes(df: pd.DataFrame, pasta_saida: str):
 
     matriz_num = np.array(matriz_num)
 
-    fig, ax = plt.subplots(figsize=(12, 10))
+    fig, ax = plt.subplots(figsize=(11, 8.5))
 
-    # Paleta customizada: Vermelho (0), Âmbar (1), Verde (2)
-    cmap = mpl.colors.ListedColormap(["#d9534f", "#f0ad4e", "#5cb85c"])
+    cmap = mpl.colors.ListedColormap(["#c0392b", "#f39c12", "#27ae60"])
     bounds = [-0.5, 0.5, 1.5, 2.5]
     norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
 
@@ -200,34 +231,37 @@ def gerar_figura2_heatmap_decisoes(df: pd.DataFrame, pasta_saida: str):
         annot=np.array(matriz_txt),
         fmt="",
         cbar=False,
-        linewidths=1.5,
+        linewidths=1.2,
         linecolor="white",
         yticklabels=[f"{row['Nome_Real']} ({row['Status_Real']})" for _, row in df.iterrows()],
         xticklabels=nomes_personas,
         ax=ax,
-        annot_kws={"fontsize": 9, "fontweight": "bold", "color": "white"}
+        annot_kws={"fontsize": 9, "color": "white", "fontweight": "bold"}
     )
 
-    # Linha divisória horizontal separando Falhas de Ativas
-    ax.axhline(10, color="#2c3e50", linewidth=3, linestyle="-")
-    ax.text(8.1, 5, "GRUPO 1: FALHAS HISTÓRICAS", rotation=270, verticalalignment="center", fontweight="bold", fontsize=10, color="#c0392b")
-    ax.text(8.1, 15, "GRUPO 2: ATIVAS / SUCESSO", rotation=270, verticalalignment="center", fontweight="bold", fontsize=10, color="#27ae60")
+    # Linha divisória preta entre Falhas e Ativas (1,5 pt)
+    ax.axhline(10, color="#000000", linewidth=1.5, linestyle="-")
+    ax.text(8.08, 5, "FALHAS HISTÓRICAS", rotation=270, verticalalignment="center",
+            fontsize=9.5, color="#000000", fontweight="bold")
+    ax.text(8.08, 15, "ATIVAS NO MERCADO", rotation=270, verticalalignment="center",
+            fontsize=9.5, color="#000000", fontweight="bold")
 
-    ax.set_title("Veredito Lean por Condição Experimental (Ano de Gênese)", fontsize=13, pad=15)
-    plt.xticks(rotation=30, ha="right", fontweight="bold")
-    plt.yticks(fontweight="bold")
+    # Sem título interno no topo
+    plt.xticks(rotation=28, ha="right", fontsize=9.5, color="#000000")
+    plt.yticks(fontsize=9, color="#000000")
 
-    # Legenda manual no rodapé
+    # Legenda manual no rodapé sem moldura
     patches = [
-        mpl.patches.Patch(color="#d9534f", label="Reprovação por Showstopper (Descarte)"),
-        mpl.patches.Patch(color="#f0ad4e", label="Necessita Pivotagem"),
-        mpl.patches.Patch(color="#5cb85c", label="Avançar para MVP")
+        mpl.patches.Patch(color="#c0392b", label="Reprovação por Showstopper (Descarte)"),
+        mpl.patches.Patch(color="#f39c12", label="Necessita Pivotagem"),
+        mpl.patches.Patch(color="#27ae60", label="Avançar para MVP")
     ]
-    ax.legend(handles=patches, loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=3, frameon=True, fontsize=10)
+    ax.legend(handles=patches, loc="upper center", bbox_to_anchor=(0.5, -0.14),
+              ncol=3, frameon=False, fontsize=9.5)
 
     plt.tight_layout()
     caminho = os.path.join(pasta_saida, "figura2_heatmap_startups_personas.png")
-    plt.savefig(caminho, bbox_inches="tight")
+    plt.savefig(caminho, bbox_inches="tight", dpi=300)
     plt.close()
     print(f"   [OK] Salvo em: {caminho}")
 
@@ -235,9 +269,9 @@ def gerar_figura2_heatmap_decisoes(df: pd.DataFrame, pasta_saida: str):
 def gerar_figura3_taxa_bloqueio_falhas(df: pd.DataFrame, pasta_saida: str):
     """
     Figura 3: Taxa de Bloqueio nas Startups com Falha Real (Pivotagem + Descarte)
-    Destacando a eficácia das Personas Críticas em relação ao Controle.
+    Manual USP/ESALQ: Sem título no topo, sem linhas de grade, eixos 1,5 pt preto.
     """
-    print("-> Gerando Figura 3: Taxa de Bloqueio nas Falhas...")
+    print("-> Gerando Figura 3: Taxa de Bloqueio nas Falhas (Padrão USP/ESALQ)...")
     falhas = df[df["Status_Real"] == "Falha"]
     tot = len(falhas)
 
@@ -256,36 +290,37 @@ def gerar_figura3_taxa_bloqueio_falhas(df: pd.DataFrame, pasta_saida: str):
         taxas_descarte.append(des)
         taxas_pivot.append(piv)
 
-    fig, ax = plt.subplots(figsize=(10, 5.5))
+    fig, ax = plt.subplots(figsize=(9.5, 4.8))
 
     cores_barras = ["#7f8c8d", "#d35400", "#c0392b", "#2980b9", "#16a085", "#8e44ad", "#27ae60", "#2c3e50"]
     x = np.arange(len(prefixos))
 
-    barras = ax.bar(x, taxas_bloqueio, color=cores_barras, width=0.55, edgecolor="#333333", linewidth=0.8)
+    barras = ax.bar(x, taxas_bloqueio, color=cores_barras, width=0.52, edgecolor="#000000", linewidth=0.8)
 
     # Linha de referência do Baseline Puro (Base = 60%)
     taxa_base = taxas_bloqueio[0]
-    ax.axhline(taxa_base, color="#7f8c8d", linestyle="--", linewidth=1.5, label=f"Linha de Base (Controle Puro = {taxa_base:.0f}%)")
+    ax.axhline(taxa_base, color="#333333", linestyle="--", linewidth=1.2,
+               label=f"Linha de Base (Controle Puro = {taxa_base:.0f}%)")
 
     for bar, tb, td in zip(barras, taxas_bloqueio, taxas_descarte):
         altura = bar.get_height()
         texto = f"{tb:.0f}%\n({td:.0f}% desc)" if td > 0 else f"{tb:.0f}%"
         ax.annotate(texto,
                     xy=(bar.get_x() + bar.get_width() / 2, altura),
-                    xytext=(0, 4), textcoords="offset points",
-                    ha="center", va="bottom", fontsize=9, fontweight="bold")
+                    xytext=(0, 3), textcoords="offset points",
+                    ha="center", va="bottom", fontsize=8.5, color="#000000")
 
-    ax.set_ylabel("Taxa de Bloqueio das Falhas (% Pivot + Descarte)")
-    ax.set_title("Capacidade de Detecção de Riscos nas Startups com Falha Histórica", fontsize=12, pad=12)
+    # Eixos e formatação da Tabela 8
+    ax.set_ylabel("Taxa de Bloqueio das Falhas (%)", fontsize=10, color="#000000")
     ax.set_xticks(x)
-    ax.set_xticklabels(nomes_curtos, rotation=25, ha="right", fontweight="bold")
+    ax.set_xticklabels(nomes_curtos, rotation=22, ha="right", fontsize=9.5, color="#000000")
     ax.set_ylim(0, 100)
-    ax.grid(axis="y", linestyle="--", alpha=0.5)
-    ax.legend(loc="upper right", frameon=True)
+    aplicar_estilo_eixos_usp(ax)
+    ax.legend(loc="upper right", frameon=False, fontsize=9)
 
     plt.tight_layout()
     caminho = os.path.join(pasta_saida, "figura3_taxa_bloqueio_falhas.png")
-    plt.savefig(caminho, bbox_inches="tight")
+    plt.savefig(caminho, bbox_inches="tight", dpi=300)
     plt.close()
     print(f"   [OK] Salvo em: {caminho}")
 
@@ -293,9 +328,9 @@ def gerar_figura3_taxa_bloqueio_falhas(df: pd.DataFrame, pasta_saida: str):
 def gerar_figura4_aderencia_causal(df: pd.DataFrame, pasta_saida: str):
     """
     Figura 4: Taxa de Aderência Causal das LOFAs na Taxonomia CB Insights
-    (Acerto Estrito vs. Acerto Amplo por Persona nas Startups que Falharam).
+    Manual USP/ESALQ: Sem título no topo, sem linhas de grade, eixos 1,5 pt preto.
     """
-    print("-> Gerando Figura 4: Aderência Causal CB Insights...")
+    print("-> Gerando Figura 4: Aderência Causal CB Insights (Padrão USP/ESALQ)...")
     falhas = df[df["Status_Real"] == "Falha"]
     tot = len(falhas)
 
@@ -314,29 +349,32 @@ def gerar_figura4_aderencia_causal(df: pd.DataFrame, pasta_saida: str):
     x = np.arange(len(prefixos))
     largura = 0.35
 
-    fig, ax = plt.subplots(figsize=(11, 5.5))
+    fig, ax = plt.subplots(figsize=(10, 4.8))
 
-    b_est = ax.bar(x - largura/2, taxas_estritas, largura, label="Acerto Estrito (Causa Primária)", color="#2980b9", edgecolor="white")
-    b_amp = ax.bar(x + largura/2, taxas_amplas, largura, label="Acerto Amplo (Causa Primária ou Secundárias)", color="#27ae60", edgecolor="white")
+    b_est = ax.bar(x - largura/2, taxas_estritas, largura, label="Acerto Estrito (Causa Primária)",
+                   color="#2980b9", edgecolor="#000000", linewidth=0.6)
+    b_amp = ax.bar(x + largura/2, taxas_amplas, largura, label="Acerto Amplo (Causa Primária ou Secundárias)",
+                   color="#27ae60", edgecolor="#000000", linewidth=0.6)
 
     for b in b_est:
         h = b.get_height()
-        ax.annotate(f"{h:.0f}%", xy=(b.get_x() + b.get_width()/2, h), xytext=(0, 3), textcoords="offset points", ha="center", va="bottom", fontsize=8.5, fontweight="bold")
+        ax.annotate(f"{h:.0f}%", xy=(b.get_x() + b.get_width()/2, h), xytext=(0, 3),
+                    textcoords="offset points", ha="center", va="bottom", fontsize=8.5, color="#000000")
     for b in b_amp:
         h = b.get_height()
-        ax.annotate(f"{h:.0f}%", xy=(b.get_x() + b.get_width()/2, h), xytext=(0, 3), textcoords="offset points", ha="center", va="bottom", fontsize=8.5, fontweight="bold")
+        ax.annotate(f"{h:.0f}%", xy=(b.get_x() + b.get_width()/2, h), xytext=(0, 3),
+                    textcoords="offset points", ha="center", va="bottom", fontsize=8.5, color="#000000")
 
-    ax.set_ylabel("Taxa de Aderência Causal (%)")
-    ax.set_title("Correspondência entre a Premissa Crítica (LOFA) e a Causa Real do Fracasso", fontsize=12, pad=12)
+    ax.set_ylabel("Taxa de Aderência Causal (%)", fontsize=10, color="#000000")
     ax.set_xticks(x)
-    ax.set_xticklabels(nomes_curtos, rotation=25, ha="right", fontweight="bold")
+    ax.set_xticklabels(nomes_curtos, rotation=22, ha="right", fontsize=9.5, color="#000000")
     ax.set_ylim(0, 105)
-    ax.grid(axis="y", linestyle="--", alpha=0.5)
-    ax.legend(loc="upper left", frameon=True)
+    aplicar_estilo_eixos_usp(ax)
+    ax.legend(loc="upper left", frameon=False, fontsize=9.5)
 
     plt.tight_layout()
     caminho = os.path.join(pasta_saida, "figura4_aderencia_causal_cbinsights.png")
-    plt.savefig(caminho, bbox_inches="tight")
+    plt.savefig(caminho, bbox_inches="tight", dpi=300)
     plt.close()
     print(f"   [OK] Salvo em: {caminho}")
 
@@ -345,14 +383,13 @@ def gerar_figura5_distribuicao_causas(df: pd.DataFrame, pasta_saida: str):
     """
     Figura 5: Distribuição de Frequência das Categorias Diagnosticadas (LOFAs nas Falhas)
     versus Gabarito Histórico Real.
+    Manual USP/ESALQ: Sem título no topo, sem linhas de grade, eixos 1,5 pt preto.
     """
-    print("-> Gerando Figura 5: Distribuição de Causas Diagnosticadas...")
+    print("-> Gerando Figura 5: Distribuição de Causas Diagnosticadas (Padrão USP/ESALQ)...")
     falhas = df[df["Status_Real"] == "Falha"]
 
-    # Contagem no Gabarito Real
     gabarito_counts = falhas["Rotulo_Categorico"].value_counts()
 
-    # Contagem nas LOFAs de todas as personas
     diagnosticos = []
     prefixos = [p[0] for p in PERSONAS_ORDEM]
     for p in prefixos:
@@ -360,32 +397,58 @@ def gerar_figura5_distribuicao_causas(df: pd.DataFrame, pasta_saida: str):
 
     diag_counts = pd.Series(diagnosticos).value_counts()
 
-    # Consolidar dataframe comparativo
     todas_categorias = list(set(gabarito_counts.index).union(set(diag_counts.index)))
     comp_df = pd.DataFrame(index=todas_categorias)
     comp_df["Gabarito_Real_Pct"] = (gabarito_counts / len(falhas) * 100).fillna(0)
     comp_df["Diagnostico_IA_Pct"] = (diag_counts / len(diagnosticos) * 100).fillna(0)
     comp_df = comp_df.sort_values(by="Diagnostico_IA_Pct", ascending=True)
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(9.5, 5.2))
     y = np.arange(len(comp_df))
     h = 0.38
 
-    ax.barh(y + h/2, comp_df["Diagnostico_IA_Pct"], h, label="Diagnóstico do Comitê de LLMs (LOFAs)", color="#34495e")
-    ax.barh(y - h/2, comp_df["Gabarito_Real_Pct"], h, label="Causa Primária Histórica (CB Insights)", color="#e74c3c")
+    ax.barh(y + h/2, comp_df["Diagnostico_IA_Pct"], h, label="Diagnóstico do Comitê de LLMs (LOFAs)",
+            color="#34495e", edgecolor="#000000", linewidth=0.6)
+    ax.barh(y - h/2, comp_df["Gabarito_Real_Pct"], h, label="Causa Primária Histórica (CB Insights)",
+            color="#e74c3c", edgecolor="#000000", linewidth=0.6)
 
     ax.set_yticks(y)
-    ax.set_yticklabels(comp_df.index, fontweight="bold")
-    ax.set_xlabel("Frequência Relativa (%)")
-    ax.set_title("Prevalência de Causas: Diagnóstico Precoce da IA vs. Fato Histórico", fontsize=12, pad=12)
-    ax.legend(loc="lower right", frameon=True)
-    ax.grid(axis="x", linestyle="--", alpha=0.5)
+    ax.set_yticklabels(comp_df.index, fontsize=9.5, color="#000000")
+    ax.set_xlabel("Frequência Relativa (%)", fontsize=10, color="#000000")
+    aplicar_estilo_eixos_usp(ax)
+    ax.legend(loc="lower right", frameon=False, fontsize=9.5)
 
     plt.tight_layout()
     caminho = os.path.join(pasta_saida, "figura5_distribuicao_causas_diagnosticadas.png")
-    plt.savefig(caminho, bbox_inches="tight")
+    plt.savefig(caminho, bbox_inches="tight", dpi=300)
     plt.close()
     print(f"   [OK] Salvo em: {caminho}")
+
+
+def higienizar_figura_radar(pasta_saida: str):
+    """
+    Remove o título interno do topo do gráfico de radar pré-existente
+    (figura_radar_lean_canvas.png) para total conformidade com a Tabela 8.
+    """
+    caminho_original = os.path.join(pasta_saida, "figura_radar_lean_canvas.png")
+    caminho_backup = os.path.join(pasta_saida, "figura_radar_lean_canvas_com_titulo.png")
+
+    if not os.path.exists(caminho_original):
+        print(f"   [AVISO] Gráfico de radar não encontrado em: {caminho_original}")
+        return
+
+    print("-> Higienizando Figura de Radar (Removendo título interno)...")
+    im = Image.open(caminho_original)
+    w, h = im.size
+
+    # Se ainda tem as linhas de título no topo (y < 160), salvar backup e recortar
+    if not os.path.exists(caminho_backup):
+        im.save(caminho_backup)
+
+    # Recortar as linhas do título superior (y >= 160)
+    im_limpa = im.crop((0, 160, w, h))
+    im_limpa.save(caminho_original, dpi=(300, 300))
+    print(f"   [OK] Gráfico de radar atualizado sem título em: {caminho_original}")
 
 
 def gerar_tabelas_ibge(df: pd.DataFrame, pasta_saida: str):
@@ -486,14 +549,14 @@ def gerar_tabelas_ibge(df: pd.DataFrame, pasta_saida: str):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Gerador Canônico de Artefatos para o TCC")
+    parser = argparse.ArgumentParser(description="Gerador Canônico de Artefatos para o TCC (Padrão USP/ESALQ)")
     parser.add_argument("--input", type=str, default="resultados/resultados_lean_canvas_com_categorias_lofa.csv")
     parser.add_argument("--output-dir", type=str, default=PASTA_ANEXOS)
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
     print("=" * 70)
-    print("GERAÇÃO DE ARTEFATOS ACADÊMICOS (FIGURAS 300 DPI + TABELAS IBGE)")
+    print("GERAÇÃO DE ARTEFATOS ACADÊMICOS — MANUAL USP/ESALQ (TABELA 8)")
     print(f"Fonte: {args.input} | Destino: {args.output_dir}")
     print("=" * 70)
 
@@ -504,10 +567,11 @@ def main():
     gerar_figura3_taxa_bloqueio_falhas(df, args.output_dir)
     gerar_figura4_aderencia_causal(df, args.output_dir)
     gerar_figura5_distribuicao_causas(df, args.output_dir)
+    higienizar_figura_radar(args.output_dir)
     gerar_tabelas_ibge(df, args.output_dir)
 
     print("=" * 70)
-    print("TODOS OS ARTEFATOS GERADOS COM SUCESSO!")
+    print("TODOS OS ARTEFATOS FORAM READEQUADOS E GERADOS COM SUCESSO!")
     print("=" * 70)
 
 
